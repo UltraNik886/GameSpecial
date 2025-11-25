@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>GameSpecial | Регистрация</title>
+    <!-- Подключаем внешний CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Присоединяйся к GameSpecial!</h1>
+        <form method="POST">
+            <label for="username">Имя пользователя (ник):</label><br>
+            <input type="text" id="username" name="username" required><br><br>
+            
+            <button type="submit">Зарегистрировать</button>
+        </form>
+        <p><a href="{{ url_for('home') }}">Вернуться на главную</a></p>
+    </div>
+</body>
+</html>

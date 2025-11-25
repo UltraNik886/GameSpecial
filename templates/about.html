@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Просто Сайт | О нас</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .nav-bar {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #eee;
+            border-radius: 4px;
+        }
+        .nav-bar a {
+            margin: 0 15px;
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+        }
+        .nav-bar a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav-bar">
+            <a href="{{ url_for('home') }}">Главная</a>
+            <a href="{{ url_for('about') }}">О нас</a>
+        </div>
+        
+        <h1>📄 Страница О нас</h1>
+        <p>Этот сайт был создан с помощью ИИ как пример простого веб-приложения на Flask.</p>
+        <p>Мы рады, что вы изучаете веб-разработку!</p>
+    </div>
+</body>
+</html>

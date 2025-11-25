@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Профиль | {{ user.username }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>👤 Профиль: <span style="color: #ffcc00;">{{ user.username }}</span></h1>
+        
+        <div class="nav-links">
+            <a href="{{ url_for('home') }}">На главную</a> 
+            |
+            <a href="{{ url_for('edit_profile', username=user.username) }}">Редактировать профиль</a>
+            |
+            <a href="{{ url_for('add_game', username=user.username) }}">Редактировать игры</a>
+        </div>
+
+        <div class="user-card" style="text-align: left;">
+            <h2>Обо мне:</h2>
+            <p>{{ user.description }}</p>
+        </div>
+
+        <div class="user-card" style="text-align: left;">
+            <h2>Контакт:</h2>
+            <p style="color: #ff6b81;">{{ user.contact }}</p>
+        </div>
+        
+        <div class="user-card" style="text-align: left;">
+            <h2>Игры в профиле:</h2>
+            <p>
+                {% for game in user.games %}
+                    <span style="color: #ffcc00; font-weight: bold;">{{ game.game_title }}</span>{% if not loop.last %}, {% endif %}
+                {% else %}
+                    <span style="color: #a491d3;">(Игры не выбраны)</span>
+                {% endfor %}
+            </p>
+        </div>
+        
+    </div>
+</body>
+</html>

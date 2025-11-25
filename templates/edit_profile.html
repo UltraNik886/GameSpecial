@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Редактировать профиль | {{ user.username }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>✏️ Редактировать профиль: <span style="color: #ffcc00;">{{ user.username }}</span></h1>
+        
+        <form method="POST">
+            <label for="description" style="display: block; margin-bottom: 5px;">О себе (описание, стиль игры):</label><br>
+            <textarea id="description" name="description" rows="5" style="width: 80%; max-width: 400px; padding: 10px; margin-bottom: 20px; border-radius: 5px; border: 1px solid #ff6b81; background-color: #1a1a2e; color: #fff; font-size: 1em;">{{ user.description }}</textarea><br>
+
+            <label for="contact" style="display: block; margin-bottom: 5px;">Контакт (Discord, Steam ID, Telegram):</label><br>
+            <input type="text" id="contact" name="contact" value="{{ user.contact }}"><br><br>
+            
+            <button type="submit">Сохранить изменения</button>
+        </form>
+        
+        <p><a href="{{ url_for('view_profile', username=user.username) }}">Отменить и вернуться в профиль</a></p>
+    </div>
+</body>
+</html>

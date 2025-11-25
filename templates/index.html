@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Historical Loop | Главная</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Общие стили для навигации, как ранее */
+        .nav-bar { margin-bottom: 20px; padding: 10px; background-color: #eee; border-radius: 4px; }
+        .nav-bar a { margin: 0 15px; text-decoration: none; color: #007bff; font-weight: bold; }
+        .news-box { border: 1px solid #ccc; padding: 15px; margin-top: 20px; border-radius: 5px; background-color: #e9e9e9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav-bar">
+            <a href="{{ url_for('home') }}">Главная (Новости)</a>
+            <a href="{{ url_for('about') }}">Викторина</a>
+        </div>
+        
+        <h1>📰 Сегодня: {{ current_date }}</h1>
+        
+        <h2>Историческая петля: Что произошло 100 лет назад?</h2>
+        
+        <div class="news-box">
+            <p><strong>Новость:</strong> {{ historical_news }}</p>
+        </div>
+        
+        <p style="margin-top: 30px;">Перейдите в раздел "Викторина", чтобы проверить свои знания!</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>GameSpecial | Найти союзника</title>
+    <!-- Подключаем внешний CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Найти союзника по игре</h1>
+        <p><a href="{{ url_for('home') }}">Вернуться на главную</a></p>
+
+        <!-- Форма для выбора игры -->
+        <form method="GET" action="{{ url_for('find_game') }}">
+            <label for="game_search">Выберите игру:</label><br>
+            <select id="game_search" name="game" required>
+                <option value="" disabled selected>-- Выберите игру --</option>
+                {% for game in available_games %}
+                    <option value="{{ game }}" {% if game == selected_game %}selected{% endif %}>{{ game }}</option>
+                {% endfor %}
+            </select><br><br>
+            
+            <button type="submit">Найти геймеров</button>
+        </form>
+
+        {% if selected_game %}
+            <hr>
+            <h2>Геймеры, играющие в "<span style="color: #ffcc00;">{{ selected_game }}</span>":</h2>
+            
+            {% if found_users %}
+                {% for user in found_users %}
+                    <div class="user-card">
+                        <h3>{{ user.username }}</h3>
+                        <p style="color: #a491d3;">Ищет команду! Свяжитесь с ним для совместной игры.</p>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p style="color: #ff6b81;">К сожалению, никто не играет в эту игру.</p>
+            {% endif %}
+        {% endif %}
+    </div>
+</body>
+</html>
