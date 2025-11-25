@@ -1,21 +1,29 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>GameSpecial | Регистрация</title>
-    <!-- Подключаем внешний CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <h1>Присоединяйся к GameSpecial!</h1>
-        <form method="POST">
-            <label for="username">Имя пользователя (ник):</label><br>
-            <input type="text" id="username" name="username" required><br><br>
-            
-            <button type="submit">Зарегистрировать</button>
-        </form>
-        <p><a href="{{ url_for('home') }}">Вернуться на главную</a></p>
-    </div>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}GameSpecial | Регистрация{% endblock %}
+
+{% block content %}
+    <h1>Присоединяйся к GameSpecial!</h1>
+
+    <form method="POST">
+        <label for="username">Имя пользователя:*</label>
+        <input type="text" id="username" name="username" required 
+               minlength="3" maxlength="20" pattern="[a-zA-Z0-9_]+"
+               title="Только латинские буквы, цифры и подчеркивание">
+        <small>3-20 символов, только буквы, цифры и _</small>
+
+        <label for="email">Email:*</label>
+        <input type="email" id="email" name="email" required>
+
+        <label for="password">Пароль:*</label>
+        <input type="password" id="password" name="password" required 
+               minlength="6" placeholder="Не менее 6 символов">
+
+        <label for="confirm_password">Подтвердите пароль:*</label>
+        <input type="password" id="confirm_password" name="confirm_password" required>
+
+        <button type="submit" class="button primary">🎮 Зарегистрироваться</button>
+    </form>
+
+    <p style="margin-top: 20px;">Уже есть аккаунт? <a href="{{ url_for('login') }}">Войдите здесь</a></p>
+{% endblock %}

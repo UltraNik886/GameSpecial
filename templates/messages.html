@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}GameSpecial | Сообщения{% endblock %}
+
+{% block content %}
+    <h1>💬 Мои сообщения</h1>
+    
+    <div class="nav-links">
+        <a href="{{ url_for('home') }}">🏠 Главная</a>
+        <a href="{{ url_for('find_game') }}">🔎 Найти союзников</a>
+    </div>
+
+    <div class="chats-list">
+        {% if chats %}
+            {% for chat in chats %}
+                <div class="user-card chat-item" onclick="location.href='{{ url_for('chat', username=chat.user.username) }}'">
+                    <div class="chat-avatar">
+                        <div class="avatar-placeholder">{{ chat.user.username[0]|upper }}</div>
+                    </div>
+                    <div class="chat-info">
+                        <h3>{{ chat.user.username }}</h3>
+                        <p class="last-message">
+                            {% if chat.last_message.sender_id == session.user_id %}
+                                <strong>Вы:</strong> 
+                            {% endif %}
+                            {{ chat.last_message.content[:50] }}{% if chat.last_message.content|length > 50 %}...{% endif %}
+                        </p>
+                        <small class="timestamp">{{ chat.last_message.timestamp.strftime('%d.%m.%Y %H:%M') }}</small>
+                    </div>
+                    {% if chat.unread_count > 0 %}
+                        <span class="unread-badge">{{ chat.unread_count }}</span>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="placeholder-text">
+                <p>У вас пока нет сообщений. <a href="{{ url_for('find_game') }}">Найдите союзников</a> и начните общение!</p>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

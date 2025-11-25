@@ -1,47 +1,55 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>GameSpecial | Главная</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <h1>✨ GameSpecial: Ищи и играй!</h1>
-        
-        <!-- СТАТИСТИКА -->
-        <div class="stats-box">
-            <p>👥 Всего геймеров: <strong>{{ user_count }}</strong></p>
-            <p>🎮 Игр в базе: <strong>{{ games_in_db }}</strong></p>
-        </div>
+{% extends "base.html" %}
 
-        <div class="nav-actions">
-            <a href="{{ url_for('register') }}" class="button primary">➕ Создать профиль</a>
-            <a href="{{ url_for('find_game') }}" class="button secondary">🔎 Найти союзников</a>
-        </div>
-        
-        <hr>
+{% block title %}GameSpecial | Главная{% endblock %}
 
-        <h2>Список профилей ({{ users | length }})</h2>
-        
-        {% for user in users %}
-        <div class="user-card">
-            <div style="flex-grow: 1; text-align: left;">
-                <!-- Ссылка на профиль -->
-                <a href="{{ url_for('view_profile', username=user.username) }}">
-                    <h3>{{ user.username }}</h3>
-                </a>
-                <!-- ИСПРАВЛЕНИЕ: Использование .count() вместо | length для AppenderQuery -->
-                <p style="color: #a491d3; margin: 5px 0;">Игр в профиле: {{ user.games.count() }}</p>
-                <a href="{{ url_for('view_profile', username=user.username) }}">Посмотреть профиль &rarr;</a>
-            </div>
-            
-            <!-- КНОПКА УДАЛЕНИЯ ПРОФИЛЯ -->
-            <form action="{{ url_for('delete_user', username=user.username) }}" method="POST" onsubmit="return confirm('Вы уверены, что хотите удалить профиль {{ user.username }}?');" style="margin-left: 20px;">
-                <button type="submit" class="delete-button" title="Удалить профиль" style="width: auto; padding: 10px 15px;">❌</button>
-            </form>
-        </div>
-        {% endfor %}
+{% block content %}
+    <h1>✨ GameSpecial: Ищи и играй!</h1>
+    
+    <!-- СТАТИСТИКА -->
+    <div class="stats-box">
+        <p>👥 Всего геймеров: <strong>{{ user_count }}</strong></p>
+        <p>🎮 Игр в базе: <strong>{{ games_in_db }}</strong></p>
     </div>
-</body>
-</html>
+
+    <div class="nav-actions">
+        {% if session.user_id %}
+            <a href="{{ url_for('view_profile', username=session.username) }}" class="button primary">👤 Мой профиль</a>
+            <a href="{{ url_for('find_game') }}" class="button secondary">🔎 Найти союзников</a>
+        {% else %}
+            <a href="{{ url_for('register') }}" class="button primary">➕ Создать профиль</a>
+            <a href="{{ url_for('login') }}" class="button secondary">🔑 Войти в систему</a>
+        {% endif %}
+    </div>
+    
+    <hr>
+
+    <h2>Список профилей ({{ users | length }})</h2>
+    
+    {% for user in users %}
+    <div class="user-card">
+        <div class="user-card-content">
+            <!-- Ссылка на профиль -->
+            <a href="{{ url_for('view_profile', username=user.username) }}">
+                <h3>{{ user.username }}</h3>
+            </a>
+            <p style="color: #a491d3; margin: 5px 0;">Игр в профиле: {{ user.games.count() }}</p>
+            {% if user.preferred_role %}
+                <p><strong>Роль:</strong> <span style="color: #ffcc00;">{{ user.preferred_role }}</span></p>
+            {% endif %}
+            <a href="{{ url_for('view_profile', username=user.username) }}">👀 Посмотреть профиль</a>
+        </div>
+        
+        <!-- КНОПКА УДАЛЕНИЯ ПРОФИЛЯ (только для своего профиля) -->
+        {% if session.user_id == user.id %}
+        <form action="{{ url_for('delete_user', username=user.username) }}" method="POST" 
+              onsubmit="return confirm('Вы уверены, что хотите удалить свой профиль {{ user.username }}?');">
+            <button type="submit" class="delete-button" title="Удалить профиль">🗑️ Удалить</button>
+        </form>
+        {% endif %}
+    </div>
+    {% else %}
+        <div class="placeholder-text">
+            <p>Пока нет зарегистрированных пользователей. <a href="{{ url_for('register') }}">Станьте первым!</a></p>
+        </div>
+    {% endfor %}
+{% endblock %}

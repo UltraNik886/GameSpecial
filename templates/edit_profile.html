@@ -1,47 +1,40 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>GameSpecial | Редактировать профиль</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <h1>⚙️ Редактирование профиля: {{ user.username }}</h1>
+{% extends "base.html" %}
 
-        <div class="nav-links">
-            <a href="{{ url_for('view_profile', username=user.username) }}">Назад к профилю</a>
-            <a href="{{ url_for('home') }}">На главную</a>
-        </div>
+{% block title %}GameSpecial | Редактировать профиль{% endblock %}
 
-        <form method="POST">
-            
-            <!-- Поле описания теперь чистое по умолчанию и имеет класс для стилизации -->
-            <label for="description">О себе (Описание):</label>
-            <textarea id="description" name="description" rows="5" class="description-textarea">{{ user.description or '' }}</textarea>
-            
-            <hr>
-            <h2>Контактная информация</h2>
+{% block content %}
+    <h1>⚙️ Редактирование профиля: {{ user.username }}</h1>
 
-            <!-- Discord - пустое по умолчанию -->
-            <label for="discord">Discord (Имя пользователя#0000 или @имя):</label>
-            <input type="text" id="discord" name="discord" value="{{ user.discord or '' }}">
-            <p class="hint">Укажите свой Discord для прямого общения.</p>
-
-            <!-- Telegram - пустое по умолчанию -->
-            <label for="telegram">Telegram (Имя пользователя @имя):</label>
-            <input type="text" id="telegram" name="telegram" value="{{ user.telegram or '' }}">
-            <p class="hint">Укажите ваш Telegram для связи.</p>
-
-            <!-- Общий контакт - пустое по умолчанию -->
-            <label for="contact">Другой контакт (Сайт, VK, Twitch и т.д.):</label>
-            <input type="text" id="contact" name="contact" value="{{ user.contact or '' }}">
-            <p class="hint">Любой другой способ связи.</p>
-
-            <!-- УБРАН БЛОК "РОЛЬ И ПРЕДПОЧТЕНИЯ" -->
-
-            <button type="submit" class="save-button">Сохранить изменения</button>
-        </form>
+    <div class="nav-links">
+        <a href="{{ url_for('view_profile', username=user.username) }}">↩️ Назад к профилю</a>
+        <a href="{{ url_for('add_game', username=user.username) }}">🎮 Управление играми</a>
     </div>
-</body>
-</html>
+
+    <form method="POST">
+        <label for="description">О себе (Описание):</label>
+        <textarea id="description" name="description" rows="5" class="description-textarea" 
+                  placeholder="Расскажите о себе, ваших игровых предпочтениях...">{{ user.description or '' }}</textarea>
+        
+        <hr>
+        
+        <h2>Контактная информация</h2>
+
+        <label for="discord">Discord (Имя пользователя#0000 или @имя):</label>
+        <input type="text" id="discord" name="discord" value="{{ user.discord or '' }}" 
+               placeholder="username#1234">
+
+        <label for="telegram">Telegram (Имя пользователя @имя):</label>
+        <input type="text" id="telegram" name="telegram" value="{{ user.telegram or '' }}" 
+               placeholder="@username">
+
+        <label for="contact">Другой контакт (Сайт, VK, Twitch и т.д.):</label>
+        <input type="text" id="contact" name="contact" value="{{ user.contact or '' }}" 
+               placeholder="Другие способы связи">
+
+        <label for="preferred_role">Предпочитаемая роль в играх:</label>
+        <input type="text" id="preferred_role" name="preferred_role" value="{{ user.preferred_role or '' }}" 
+               placeholder="Например: Tank, Support, Carry, Sniper...">
+
+        <button type="submit" class="button primary">💾 Сохранить изменения</button>
+    </form>
+{% endblock %}

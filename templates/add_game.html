@@ -1,49 +1,49 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>GameSpecial | Управление играми</title>
-    <!-- Подключаем внешний CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <h1>⚙️ Управление играми для <span style="color: #ffcc00;">{{ user.username }}</span></h1>
-        
-        <!-- Форма для ДОБАВЛЕНИЯ игры -->
-        <h2>Добавить новую игру:</h2>
-        <form method="POST">
-            <label for="game_title">Выберите игру для добавления:</label><br>
-            <select id="game_title" name="game_title" required>
-                {% for game in available_games %}
-                    <option value="{{ game }}">{{ game }}</option>
-                {% endfor %}
-            </select><br><br>
-            
-            <button type="submit">Добавить игру</button>
-        </form>
-        
-        <hr style="border-color: #3c1e63; margin: 40px 0;">
+{% extends "base.html" %}
 
-        <!-- Список и удаление текущих игр -->
-        <h2>Удалить игру:</h2>
+{% block title %}GameSpecial | Управление играми{% endblock %}
+
+{% block content %}
+    <h1>⚙️ Управление играми для <span style="color: #ffcc00;">{{ user.username }}</span></h1>
+    
+    <div class="nav-links">
+        <a href="{{ url_for('view_profile', username=user.username) }}">↩️ Назад к профилю</a>
+        <a href="{{ url_for('edit_profile', username=user.username) }}">✏️ Редактировать профиль</a>
+    </div>
+
+    <!-- Форма для ДОБАВЛЕНИЯ игры -->
+    <h2>Добавить новую игру:</h2>
+    <form method="POST">
+        <label for="game_title">Выберите игру для добавления:</label>
+        <select id="game_title" name="game_title" required>
+            <option value="">-- Выберите игру --</option>
+            {% for game in available_games %}
+                <option value="{{ game }}">{{ game }}</option>
+            {% endfor %}
+        </select>
         
+        <button type="submit" class="button primary">➕ Добавить игру</button>
+    </form>
+    
+    <hr>
+
+    <!-- Список и удаление текущих игр -->
+    <h2>Ваши игры ({{ user.games.count() }}):</h2>
+    
+    {% if user.games.count() > 0 %}
         {% for game in user.games %}
-            <div class="user-card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <span style="font-weight: bold;">{{ game.game_title }}</span>
+            <div class="user-card">
+                <span style="font-weight: bold; color: #ffcc00; font-size: 1.1em;">{{ game.game_title }}</span>
                 
                 <!-- Форма для УДАЛЕНИЯ игры -->
-                <form method="POST" action="{{ url_for('delete_game', username=user.username, game_id=game.id) }}" style="margin: 0;">
-                    <button type="submit" style="background-color: #e55a70; padding: 6px 12px; font-size: 0.8em;">
-                        Удалить
+                <form method="POST" action="{{ url_for('delete_game', username=user.username, game_id=game.id) }}">
+                    <button type="submit" class="delete-button" 
+                            onclick="return confirm('Удалить игру {{ game.game_title }}?')">
+                        🗑️ Удалить
                     </button>
                 </form>
             </div>
-        {% else %}
-            <p style="color: #a491d3;">Игры еще не выбраны.</p>
         {% endfor %}
-        
-        <p><a href="{{ url_for('view_profile', username=user.username) }}">Вернуться в профиль</a></p>
-    </div>
-</body>
-</html>
+    {% else %}
+        <p class="placeholder-text">У вас пока нет добавленных игр.</p>
+    {% endif %}
+{% endblock %}

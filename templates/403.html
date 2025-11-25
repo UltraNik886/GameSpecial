@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block title %}GameSpecial | Доступ запрещен{% endblock %}
+
+{% block content %}
+    <h1>🚫 Доступ запрещен</h1>
+    <p>У вас нет прав для просмотра этой страницы.</p>
+    <a href="{{ url_for('home') }}" class="button primary">🏠 На главную</a>
+{% endblock %}
