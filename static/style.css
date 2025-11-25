@@ -1,118 +1,210 @@
-/* --- Глобальные настройки --- */
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #1e1e3f;
+    color: #f0f0f0;
+    font-family: 'Arial', sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #1a1a2e; /* Глубокий темный фон */
-    color: #fff;
-    text-align: center;
-    line-height: 1.6;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
 }
 
 .container {
-    background-color: #2e1a47; /* Основной блок: темно-фиолетовый */
-    padding: 40px 30px;
+    width: 90%;
+    max-width: 800px;
+    background-color: #2a2a5c;
+    padding: 40px;
     border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-    max-width: 900px;
-    margin: 50px auto;
-    border: 1px solid #3c1e63; /* Тонкая рамка */
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    margin: 20px 0;
 }
 
-/* --- Заголовки и текст --- */
 h1 {
-    color: #ffcc00; /* Желтый акцент */
-    border-bottom: 2px solid #3c1e63;
-    padding-bottom: 15px;
+    color: #ff6b81;
+    text-align: center;
     margin-bottom: 30px;
-    font-size: 2.2em;
-    text-shadow: 0 0 5px rgba(255, 204, 0, 0.5); /* Небольшое свечение */
+    padding-bottom: 10px;
+    border-bottom: 3px solid #3c1e63;
 }
 
 h2 {
-    color: #ff6b81; /* Розовый акцент */
+    color: #ffcc00;
     margin-top: 30px;
+    margin-bottom: 15px;
 }
 
-/* --- Навигация --- */
-.nav-links {
-    margin-bottom: 30px;
-}
-.nav-links a {
-    color: #a491d3; /* Светло-фиолетовый */
-    text-decoration: none;
-    margin: 0 15px;
-    font-weight: 600;
-    font-size: 1.1em;
-    transition: color 0.3s;
-}
-.nav-links a:hover {
-    color: #ffcc00; /* Подсветка при наведении */
-}
-
-/* --- Карточки пользователей (Отображение данных) --- */
-.user-card {
-    background-color: #3c1e63;
-    padding: 15px;
-    margin: 15px 0;
-    border-radius: 8px;
-    border-left: 5px solid #ffcc00;
-    text-align: left;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s;
-}
-.user-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
-}
-.user-card h3 {
+h3 {
+    color: #a491d3;
     margin-top: 0;
+    margin-bottom: 5px;
+}
+
+p {
+    line-height: 1.6;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid #3c1e63;
+    margin: 20px 0;
+}
+
+/* Стили для ссылок и кнопок */
+a {
+    color: #a491d3;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+a:hover {
     color: #ff6b81;
 }
-.user-card a {
-    color: #ffcc00; /* Цвет ссылки в карточке */
-    text-decoration: none;
-    font-size: 0.9em;
-    display: inline-block;
-    margin-top: 5px;
+
+.nav-actions, .nav-links {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
 }
 
-/* --- Формы (Регистрация, Добавление игры, Поиск) --- */
-input[type="text"], select {
-    padding: 10px;
-    margin-bottom: 20px;
-    width: 80%;
-    max-width: 300px;
-    border-radius: 5px;
-    border: 1px solid #ff6b81;
-    background-color: #1a1a2e;
-    color: #fff;
-    font-size: 1em;
-}
-
-button {
-    padding: 12px 25px;
-    background-color: #ff6b81;
-    color: #fff;
+.button {
+    padding: 10px 20px;
     border: none;
-    border-radius: 5px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 1.1em;
     font-weight: bold;
-    transition: background-color 0.3s, transform 0.1s;
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    transition: background-color 0.2s, transform 0.1s;
 }
 
-button:hover { 
-    background-color: #e55a70; 
+.button.primary {
+    background-color: #ff6b81;
+    color: #1e1e3f;
+}
+
+.button.primary:hover {
+    background-color: #ff8c99;
     transform: translateY(-1px);
 }
 
-/* Стили для текущих игр в профиле */
-.current-games {
+.button.secondary {
+    background-color: #a491d3;
+    color: #1e1e3f;
+}
+
+.button.secondary:hover {
+    background-color: #c0b3eb;
+    transform: translateY(-1px);
+}
+
+/* Формы и поля ввода */
+label {
+    display: block;
+    margin-top: 15px;
+    margin-bottom: 5px;
+    color: #ffcc00;
+    font-weight: bold;
+}
+
+input[type="text"], textarea {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #3c1e63;
+    border-radius: 6px;
+    background-color: #1e1e3f;
+    color: #f0f0f0;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+    /* ИСПРАВЛЕНИЕ: Запрещаем изменение размера для всех textarea */
+    resize: none; 
+}
+
+input[type="text"]:focus, textarea:focus {
+    border-color: #ff6b81;
+    outline: none;
+}
+
+.save-button {
+    background-color: #ffcc00;
+    color: #1e1e3f;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background-color 0.2s;
+}
+
+.save-button:hover {
+    background-color: #ffd733;
+}
+
+/* Список игр в профиле */
+.game-list {
+    list-style: none;
+    padding: 0;
+}
+
+.game-list li {
+    background-color: #3c1e63;
+    padding: 8px 15px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+    color: #f0f0f0;
+}
+
+/* Карточка пользователя для главной и поиска */
+.user-card {
     background-color: #3c1e63;
     padding: 15px;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     border-radius: 8px;
-    border: 1px dashed #a491d3;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.user-card h3 a {
+    color: #ff6b81;
+    font-size: 1.3em;
+}
+
+.user-card p {
+    margin: 5px 0;
+    color: #a491d3;
+}
+
+.user-card a {
+    font-size: 0.9em;
+    color: #ffcc00;
+}
+
+/* Кнопка удаления */
+.delete-button {
+    background-color: #ff4d4d;
+    color: white;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.delete-button:hover {
+    background-color: #cc0000;
+}
+
+/* Специальные стили */
+.highlight {
+    color: #ffcc00;
+    font-weight: bold;
+}
+
+.placeholder-text {
+    color: #a491d3;
+    font-style: italic;
 }

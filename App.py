@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for
-from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy 
+from sqlalchemy import distinct, func 
 
 # --- 0. Доступные игры ---
 AVAILABLE_GAMES = [
@@ -27,8 +28,16 @@ db = SQLAlchemy(app)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    description = db.Column(db.String(500), default='Привет, я новый геймер!')
-    contact = db.Column(db.String(100), default='Не указан')
+    # ИЗМЕНЕНО: Значение по умолчанию — пустая строка, чтобы избежать "Не указан"
+    description = db.Column(db.String(500), default='') 
+    contact = db.Column(db.String(100), default='')
+    
+    # НОВЫЕ ПОЛЯ ПРОФИЛЯ
+    discord = db.Column(db.String(100), default='')
+    telegram = db.Column(db.String(100), default='')
+    # УДАЛЕНО из профиля, но оставлено в базе, чтобы не было ошибки при запуске
+    preferred_role = db.Column(db.String(100), default='') 
+    
     games = db.relationship('Game', backref='player', lazy='dynamic')
     
     def __repr__(self):
@@ -45,7 +54,7 @@ class Game(db.Model):
 # --- 3. Создание базы данных (Запуск) ---
 
 with app.app_context():
-    # ВНИМАНИЕ: Если вы удалили gamespecial.db, этот код создаст новую БД.
+    # ЕСЛИ ВЫ УДАЛЯЛИ gamespecial.db, ОН БУДЕТ СОЗДАН С НОВЫМИ ПУСТЫМИ ЗНАЧЕНИЯМИ ПО УМОЛЧАНИЮ
     db.create_all()
 
 
@@ -53,15 +62,25 @@ with app.app_context():
 
 @app.route('/')
 def home():
+    user_count = db.session.query(User).count()
+    game_count_query = db.session.query(func.count(distinct(Game.game_title)))
+    games_in_db = game_count_query.scalar()
     users = User.query.all()
-    return render_template('home.html', users=users)
+    
+    return render_template(
+        'home.html', 
+        users=users,
+        user_count=user_count, 
+        games_in_db=games_in_db 
+    )
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         new_username = request.form.get('username')
         if new_username:
-            user = User(username=new_username)
+            # При регистрации поля будут пустыми, согласно модели
+            user = User(username=new_username) 
             db.session.add(user)
             db.session.commit()
             return redirect(url_for('view_profile', username=new_username)) 
@@ -80,7 +99,7 @@ def add_game(username):
                 new_game = Game(game_title=game_title, player=user)
                 db.session.add(new_game)
                 db.session.commit()
-            return redirect(url_for('add_game', username=user.username)) # Возвращаемся на страницу управления играми
+            return redirect(url_for('add_game', username=user.username)) 
             
     return render_template(
         'add_game.html', 
@@ -88,20 +107,48 @@ def add_game(username):
         available_games=AVAILABLE_GAMES
     )
 
+# ЛОГИКА ПОИСКА (Мультифильтрация игр и контактов)
 @app.route('/find_game', methods=['GET'])
 def find_game():
-    selected_game = request.args.get('game')
+    selected_games = request.args.getlist('games') 
+    contact_filters = request.args.getlist('contact_filter') 
+    
+    all_users = User.query.all()
     found_users = []
     
-    if selected_game:
-        game_entries = Game.query.filter_by(game_title=selected_game).all()
-        found_users = [entry.player for entry in game_entries]
+    for user in all_users:
         
+        # --- ФИЛЬТР ИГР ---
+        passes_game_filter = True
+        if selected_games:
+            user_game_titles = [game.game_title for game in user.games]
+            if not all(game_title in user_game_titles for game_title in selected_games):
+                passes_game_filter = False
+        
+        # --- ФИЛЬТР КОНТАКТОВ ---
+        passes_contact_filter = True
+        if contact_filters:
+            has_required_contact = False
+            
+            # Проверяем, что поля не пустые
+            if 'discord' in contact_filters and user.discord:
+                has_required_contact = True
+            if 'telegram' in contact_filters and user.telegram:
+                has_required_contact = True
+            
+            if not has_required_contact:
+                passes_contact_filter = False
+                
+        # --- КОНЕЧНОЕ РЕШЕНИЕ ---
+        if passes_game_filter and passes_contact_filter:
+            found_users.append(user)
+                
     return render_template(
         'find_game.html', 
         available_games=AVAILABLE_GAMES,
         found_users=found_users,
-        selected_game=selected_game
+        selected_games=selected_games,
+        contact_filters=contact_filters 
     )
 
 @app.route('/delete_user/<username>', methods=['POST']) 
@@ -122,17 +169,21 @@ def edit_profile(username):
     user = User.query.filter_by(username=username).first_or_404()
     
     if request.method == 'POST':
-        user.description = request.form.get('description')
-        user.contact = request.form.get('contact')
+        user.description = request.form.get('description') or ''
+        user.contact = request.form.get('contact') or ''
+        
+        user.discord = request.form.get('discord') or ''
+        user.telegram = request.form.get('telegram') or ''
+        # ЭТО ПОЛЕ ВСЕ ЕЩЕ СОХРАНЯЕТСЯ, НО БОЛЬШЕ НЕ РЕДАКТИРУЕТСЯ И НЕ ОТОБРАЖАЕТСЯ
+        user.preferred_role = request.form.get('preferred_role') or ''
+        
         db.session.commit()
         return redirect(url_for('view_profile', username=user.username))
         
     return render_template('edit_profile.html', user=user)
 
-# НОВЫЙ МАРШРУТ: Удаление конкретной игры
 @app.route('/delete_game/<username>/<int:game_id>', methods=['POST'])
 def delete_game(username, game_id):
-    # Находим игру по ID и проверяем, что она принадлежит пользователю
     game = Game.query.filter_by(id=game_id, player=User.query.filter_by(username=username).first()).first_or_404()
     
     db.session.delete(game)

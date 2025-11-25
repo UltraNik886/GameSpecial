@@ -2,55 +2,44 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GameSpecial | Главная</title>
-    <!-- Подключаем внешний CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
-        <h1>🎮 GameSpecial: Найди союзника!</h1>
+        <h1>✨ GameSpecial: Ищи и играй!</h1>
         
-        <!-- БЛОК СТАТИСТИКИ -->
-        <div class="stats-box" style="margin-bottom: 25px; padding: 15px; background-color: #3c1e63; border-radius: 10px; display: flex; justify-content: space-around; font-size: 1.1em;">
-            <span>👥 Геймеров в базе: <strong style="color: #ffcc00;">{{ user_count }}</strong></span>
-            <span>🕹️ Уникальных игр: <strong style="color: #ff6b81;">{{ games_in_db }}</strong></span>
-        </div>
-        
-        <div class="nav-links">
-            <a href="{{ url_for('register') }}">Зарегистрироваться</a> 
-            | 
-            <a href="{{ url_for('find_game') }}">Найти игру и союзников</a>
+        <!-- СТАТИСТИКА -->
+        <div class="stats-box">
+            <p>👥 Всего геймеров: <strong>{{ user_count }}</strong></p>
+            <p>🎮 Игр в базе: <strong>{{ games_in_db }}</strong></p>
         </div>
 
-        <h2>Список активных геймеров:</h2>
+        <div class="nav-actions">
+            <a href="{{ url_for('register') }}" class="button primary">➕ Создать профиль</a>
+            <a href="{{ url_for('find_game') }}" class="button secondary">🔎 Найти союзников</a>
+        </div>
         
-        <!-- Jinja-цикл для отображения пользователей из БД -->
+        <hr>
+
+        <h2>Список профилей ({{ users | length }})</h2>
+        
         {% for user in users %}
-            <div class="user-card" style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <!-- Ссылка ведет на профиль -->
-                    <h3><a href="{{ url_for('view_profile', username=user.username) }}" style="color: #ff6b81;">{{ user.username }}</a></h3>
-                    <p>
-                        <strong>Игры в профиле:</strong> 
-                        {% for game in user.games %}
-                            <span style="color: #ffcc00;">{{ game.game_title }}</span>{% if not loop.last %}, {% endif %}
-                        {% else %}
-                            <span style="color: #a491d3;">(Игры не выбраны)</span>
-                        {% endfor %}
-                    </p>
-                    <a href="{{ url_for('view_profile', username=user.username) }}">Посмотреть профиль &rarr;</a>
-                </div>
-                
-                <!-- ФОРМА ДЛЯ УДАЛЕНИЯ -->
-                <form method="POST" action="{{ url_for('delete_user', username=user.username) }}" style="margin: 0;">
-                    <button type="submit" style="background-color: #e55a70; padding: 8px 15px; font-size: 0.9em;">
-                        Удалить
-                    </button>
-                </form>
+        <div class="user-card">
+            <div style="flex-grow: 1;">
+                <!-- Ссылка на профиль -->
+                <a href="{{ url_for('view_profile', username=user.username) }}">
+                    <h3>{{ user.username }}</h3>
+                </a>
+                <p>Игр в профиле: {{ user.games | length }}</p>
+                <a href="{{ url_for('view_profile', username=user.username) }}">Посмотреть профиль &rarr;</a>
             </div>
-        {% else %}
-            <p style="color: #ff6b81;">Пока нет зарегистрированных пользователей. Будьте первым, кто создаст профиль!</p>
+            
+            <!-- КНОПКА УДАЛЕНИЯ ПРОФИЛЯ (ПЕРЕМЕЩЕНА СЮДА) -->
+            <form action="{{ url_for('delete_user', username=user.username) }}" method="POST" onsubmit="return confirm('Вы уверены, что хотите удалить профиль {{ user.username }}?');" style="margin-left: 20px;">
+                <button type="submit" class="delete-button" style="width: auto; padding: 10px 15px;">❌ Удалить</button>
+            </form>
+        </div>
         {% endfor %}
     </div>
 </body>

@@ -2,42 +2,73 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Профиль | {{ user.username }}</title>
+    <title>GameSpecial | Профиль {{ user.username }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
-        <h1>👤 Профиль: <span style="color: #ffcc00;">{{ user.username }}</span></h1>
+        <h1 style="border-bottom: 2px solid #ff6b81;">Профиль: {{ user.username }}</h1>
         
         <div class="nav-links">
-            <a href="{{ url_for('home') }}">На главную</a> 
-            |
-            <a href="{{ url_for('edit_profile', username=user.username) }}">Редактировать профиль</a>
-            |
-            <a href="{{ url_for('add_game', username=user.username) }}">Редактировать игры</a>
+            <a href="{{ url_for('edit_profile', username=user.username) }}" class="edit-link">Редактировать профиль 📝</a>
+            <a href="{{ url_for('add_game', username=user.username) }}">Управление играми 🎮</a>
+            <a href="{{ url_for('home') }}">На главную</a>
         </div>
 
-        <div class="user-card" style="text-align: left;">
-            <h2>Обо мне:</h2>
-            <p>{{ user.description }}</p>
-        </div>
+        <div class="profile-details">
+            <h2>О себе</h2>
+            <!-- ИСПОЛЬЗУЕМ КРАСИВЫЙ БЛОК -->
+            <div class="stylish-text-block">
+                {{ user.description }}
+            </div>
+            
+            <hr>
+            
+            <!-- УБРАН БЛОК "СПЕЦИАЛИЗАЦИЯ" -->
 
-        <div class="user-card" style="text-align: left;">
-            <h2>Контакт:</h2>
-            <p style="color: #ff6b81;">{{ user.contact }}</p>
+            <h2>Контактная информация</h2>
+            {% set contact_found = false %}
+
+            <!-- Discord -->
+            {% if user.discord %}
+                <p><strong>Discord:</strong> <span class="highlight">{{ user.discord }}</span></p>
+                {% set contact_found = true %}
+            {% endif %}
+            
+            <!-- Telegram -->
+            {% if user.telegram %}
+                <p><strong>Telegram:</strong> <span class="highlight">{{ user.telegram }}</span></p>
+                {% set contact_found = true %}
+            {% endif %}
+
+            <!-- Другой контакт -->
+            {% if user.contact and user.contact != 'Не указан' and user.contact != '' %}
+                <p><strong>Другой контакт:</strong> <span class="highlight">{{ user.contact }}</span></p>
+                {% set contact_found = true %}
+            {% endif %}
+
+            <!-- Если контакты не указаны -->
+            {% if not contact_found %}
+                <p class="placeholder-text">Контакты не указаны.</p>
+            {% endif %}
+
+            <hr>
+
+            <h2>Игры {{ user.username }}</h2>
+            {% if user.games.all() %}
+                <ul class="game-list">
+                    {% for game in user.games %}
+                        <li>{{ game.game_title }}</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="placeholder-text">Пользователь пока не добавил ни одной игры. <a href="{{ url_for('add_game', username=user.username) }}">Добавить игру</a></p>
+            {% endif %}
+            
+            <hr>
+            
+            <!-- УБРАНА КНОПКА УДАЛЕНИЯ ПРОФИЛЯ -->
         </div>
-        
-        <div class="user-card" style="text-align: left;">
-            <h2>Игры в профиле:</h2>
-            <p>
-                {% for game in user.games %}
-                    <span style="color: #ffcc00; font-weight: bold;">{{ game.game_title }}</span>{% if not loop.last %}, {% endif %}
-                {% else %}
-                    <span style="color: #a491d3;">(Игры не выбраны)</span>
-                {% endfor %}
-            </p>
-        </div>
-        
     </div>
 </body>
 </html>

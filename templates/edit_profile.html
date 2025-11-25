@@ -2,24 +2,46 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Редактировать профиль | {{ user.username }}</title>
+    <title>GameSpecial | Редактировать профиль</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
-        <h1>✏️ Редактировать профиль: <span style="color: #ffcc00;">{{ user.username }}</span></h1>
-        
-        <form method="POST">
-            <label for="description" style="display: block; margin-bottom: 5px;">О себе (описание, стиль игры):</label><br>
-            <textarea id="description" name="description" rows="5" style="width: 80%; max-width: 400px; padding: 10px; margin-bottom: 20px; border-radius: 5px; border: 1px solid #ff6b81; background-color: #1a1a2e; color: #fff; font-size: 1em;">{{ user.description }}</textarea><br>
+        <h1>⚙️ Редактирование профиля: {{ user.username }}</h1>
 
-            <label for="contact" style="display: block; margin-bottom: 5px;">Контакт (Discord, Steam ID, Telegram):</label><br>
-            <input type="text" id="contact" name="contact" value="{{ user.contact }}"><br><br>
+        <div class="nav-links">
+            <a href="{{ url_for('view_profile', username=user.username) }}">Назад к профилю</a>
+            <a href="{{ url_for('home') }}">На главную</a>
+        </div>
+
+        <form method="POST">
             
-            <button type="submit">Сохранить изменения</button>
+            <!-- Поле описания теперь чистое по умолчанию и имеет класс для стилизации -->
+            <label for="description">О себе (Описание):</label>
+            <textarea id="description" name="description" rows="5" class="description-textarea">{{ user.description or '' }}</textarea>
+            
+            <hr>
+            <h2>Контактная информация</h2>
+
+            <!-- Discord - пустое по умолчанию -->
+            <label for="discord">Discord (Имя пользователя#0000 или @имя):</label>
+            <input type="text" id="discord" name="discord" value="{{ user.discord or '' }}">
+            <p class="hint">Укажите свой Discord для прямого общения.</p>
+
+            <!-- Telegram - пустое по умолчанию -->
+            <label for="telegram">Telegram (Имя пользователя @имя):</label>
+            <input type="text" id="telegram" name="telegram" value="{{ user.telegram or '' }}">
+            <p class="hint">Укажите ваш Telegram для связи.</p>
+
+            <!-- Общий контакт - пустое по умолчанию -->
+            <label for="contact">Другой контакт (Сайт, VK, Twitch и т.д.):</label>
+            <input type="text" id="contact" name="contact" value="{{ user.contact or '' }}">
+            <p class="hint">Любой другой способ связи.</p>
+
+            <!-- УБРАН БЛОК "РОЛЬ И ПРЕДПОЧТЕНИЯ" -->
+
+            <button type="submit" class="save-button">Сохранить изменения</button>
         </form>
-        
-        <p><a href="{{ url_for('view_profile', username=user.username) }}">Отменить и вернуться в профиль</a></p>
     </div>
 </body>
 </html>
