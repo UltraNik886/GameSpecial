@@ -28,16 +28,14 @@ db = SQLAlchemy(app)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    # ИЗМЕНЕНО: Значение по умолчанию — пустая строка, чтобы избежать "Не указан"
     description = db.Column(db.String(500), default='') 
     contact = db.Column(db.String(100), default='')
     
-    # НОВЫЕ ПОЛЯ ПРОФИЛЯ
     discord = db.Column(db.String(100), default='')
     telegram = db.Column(db.String(100), default='')
-    # УДАЛЕНО из профиля, но оставлено в базе, чтобы не было ошибки при запуске
     preferred_role = db.Column(db.String(100), default='') 
     
+    # games остается lazy='dynamic'
     games = db.relationship('Game', backref='player', lazy='dynamic')
     
     def __repr__(self):
@@ -54,7 +52,6 @@ class Game(db.Model):
 # --- 3. Создание базы данных (Запуск) ---
 
 with app.app_context():
-    # ЕСЛИ ВЫ УДАЛЯЛИ gamespecial.db, ОН БУДЕТ СОЗДАН С НОВЫМИ ПУСТЫМИ ЗНАЧЕНИЯМИ ПО УМОЛЧАНИЮ
     db.create_all()
 
 
@@ -65,8 +62,11 @@ def home():
     user_count = db.session.query(User).count()
     game_count_query = db.session.query(func.count(distinct(Game.game_title)))
     games_in_db = game_count_query.scalar()
+    
+    # Получаем список пользователей (нужен для корректной работы шаблона)
     users = User.query.all()
     
+    # Передаем список users в шаблон
     return render_template(
         'home.html', 
         users=users,
@@ -79,7 +79,6 @@ def register():
     if request.method == 'POST':
         new_username = request.form.get('username')
         if new_username:
-            # При регистрации поля будут пустыми, согласно модели
             user = User(username=new_username) 
             db.session.add(user)
             db.session.commit()
@@ -121,7 +120,8 @@ def find_game():
         # --- ФИЛЬТР ИГР ---
         passes_game_filter = True
         if selected_games:
-            user_game_titles = [game.game_title for game in user.games]
+            # Используем .all() для получения списка игр, чтобы избежать ошибки AppenderQuery
+            user_game_titles = [game.game_title for game in user.games.all()] 
             if not all(game_title in user_game_titles for game_title in selected_games):
                 passes_game_filter = False
         
@@ -130,7 +130,6 @@ def find_game():
         if contact_filters:
             has_required_contact = False
             
-            # Проверяем, что поля не пустые
             if 'discord' in contact_filters and user.discord:
                 has_required_contact = True
             if 'telegram' in contact_filters and user.telegram:
@@ -174,7 +173,6 @@ def edit_profile(username):
         
         user.discord = request.form.get('discord') or ''
         user.telegram = request.form.get('telegram') or ''
-        # ЭТО ПОЛЕ ВСЕ ЕЩЕ СОХРАНЯЕТСЯ, НО БОЛЬШЕ НЕ РЕДАКТИРУЕТСЯ И НЕ ОТОБРАЖАЕТСЯ
         user.preferred_role = request.form.get('preferred_role') or ''
         
         db.session.commit()

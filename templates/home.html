@@ -26,18 +26,19 @@
         
         {% for user in users %}
         <div class="user-card">
-            <div style="flex-grow: 1;">
+            <div style="flex-grow: 1; text-align: left;">
                 <!-- Ссылка на профиль -->
                 <a href="{{ url_for('view_profile', username=user.username) }}">
                     <h3>{{ user.username }}</h3>
                 </a>
-                <p>Игр в профиле: {{ user.games | length }}</p>
+                <!-- ИСПРАВЛЕНИЕ: Использование .count() вместо | length для AppenderQuery -->
+                <p style="color: #a491d3; margin: 5px 0;">Игр в профиле: {{ user.games.count() }}</p>
                 <a href="{{ url_for('view_profile', username=user.username) }}">Посмотреть профиль &rarr;</a>
             </div>
             
-            <!-- КНОПКА УДАЛЕНИЯ ПРОФИЛЯ (ПЕРЕМЕЩЕНА СЮДА) -->
+            <!-- КНОПКА УДАЛЕНИЯ ПРОФИЛЯ -->
             <form action="{{ url_for('delete_user', username=user.username) }}" method="POST" onsubmit="return confirm('Вы уверены, что хотите удалить профиль {{ user.username }}?');" style="margin-left: 20px;">
-                <button type="submit" class="delete-button" style="width: auto; padding: 10px 15px;">❌ Удалить</button>
+                <button type="submit" class="delete-button" title="Удалить профиль" style="width: auto; padding: 10px 15px;">❌</button>
             </form>
         </div>
         {% endfor %}
