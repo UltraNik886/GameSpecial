@@ -1,50 +1,33 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy 
-from sqlalchemy import distinct, func, text  # ← ДОБАВИЛ text
+from sqlalchemy import distinct, func, text
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 import re
 import secrets
-import time
 
 # --- Конфигурация ---
 app = Flask(__name__)
 
-# АВТОМАТИЧЕСКОЕ ИСПРАВЛЕНИЕ ДЛЯ RAILWAY
-if os.environ.get('RAILWAY_ENVIRONMENT'):
-    # 🚀 НА RAILWAY (продакшен)
-    secret_key = os.environ.get('SECRET_KEY')
-    if not secret_key:
-        secret_key = 'railway-fallback-secret-key-2024-' + secrets.token_hex(16)
-        print("⚠️  SECRET_KEY не найден! Используем автоматический ключ")
-    app.config['SECRET_KEY'] = secret_key
-    
-    database_url = os.environ.get('DATABASE_URL')
-    if database_url:
-        if database_url.startswith('postgres://'):
-            database_url = database_url.replace('postgres://', 'postgresql://', 1)
-        app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-        print("🚀 Используем PostgreSQL базу")
-    else:
-        # ФИКС: Создаем правильный путь для SQLite
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(os.getcwd(), 'railway_production.db')
-        print("⚠️  DATABASE_URL не найден! Используем SQLite")
-    
-    DEBUG_MODE = False
-    print("🚀 Запуск в ПРОДАКШЕН режиме (Railway)")
-else:
-    # 💻 Локальная разработка  
-    app.config['SECRET_KEY'] = 'dev-secret-key-change-in-production-12345'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(os.getcwd(), 'gamespecial.db')
-    DEBUG_MODE = True
-    print("💻 Запуск в РАЗРАБОТКЕ (локально)")
-
+# Сначала настраиваем базовые конфиги
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production-12345')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Инициализация базы данных
+# Настройка базы данных
+if os.environ.get('DATABASE_URL'):
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    print("🚀 Используем PostgreSQL базу")
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+    print("⚠️  DATABASE_URL не найден! Используем SQLite")
+
+# Инициализация базы данных ДО создания моделей
 db = SQLAlchemy(app)
 
-# --- Модели (без изменений) ---
+# --- Модели ---
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -88,6 +71,22 @@ AVAILABLE_GAMES = [
     "Baldur's Gate 3", "Minecraft", "Apex Legends", "Genshin Impact", "Rocket League"
 ]
 
+# --- Инициализация базы данных ---
+def init_database():
+    """Создает таблицы если их нет"""
+    try:
+        with app.app_context():
+            print("🔄 Создаем таблицы в базе данных...")
+            db.create_all()
+            print("✅ Таблицы созданы успешно!")
+            return True
+    except Exception as e:
+        print(f"❌ Ошибка при создании таблиц: {e}")
+        return False
+
+# Вызываем инициализацию при импорте
+init_database()
+
 # --- Валидаторы ---
 def validate_username(username):
     if len(username) < 3: return "Имя пользователя должно быть не менее 3 символов"
@@ -115,57 +114,11 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-def ownership_required(f):
-    from functools import wraps
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            flash('Пожалуйста, войдите в систему', 'error')
-            return redirect(url_for('login'))
-        username = kwargs.get('username')
-        user = User.query.filter_by(username=username).first_or_404()
-        if user.id != session.get('user_id'):
-            flash('У вас нет прав для этого действия', 'error')
-            return redirect(url_for('home'))
-        return f(*args, **kwargs)
-    return decorated_function
-
 # --- АДМИН СИСТЕМА ---
 ADMIN_USERNAMES = ['MollNik']
 
 def is_admin():
     return session.get('username') in ADMIN_USERNAMES
-
-# --- Инициализация базы данных ---
-def init_db():
-    """Инициализирует базу данных"""
-    max_retries = 5
-    for attempt in range(max_retries):
-        try:
-            with app.app_context():
-                print(f"🔄 Попытка создания таблиц ({attempt + 1}/{max_retries})...")
-                db.create_all()
-                
-                # Проверяем, что таблицы создались
-                db.session.execute(text('SELECT 1 FROM user LIMIT 1'))
-                print("✅ База данных инициализирована успешно!")
-                return True
-                
-        except Exception as e:
-            print(f"⚠️  Попытка {attempt + 1} не удалась: {str(e)}")
-            if "no such table" in str(e):
-                print("🔄 Создаем таблицы...")
-                db.create_all()
-                db.session.commit()
-                print("✅ Таблицы созданы!")
-                return True
-            elif attempt < max_retries - 1:
-                wait_time = 2 * (attempt + 1)
-                print(f"⏳ Ждем {wait_time} секунд перед повторной попыткой...")
-                time.sleep(wait_time)
-            else:
-                print("❌ Не удалось инициализировать базу данных после всех попыток")
-                return False
 
 # --- ОСНОВНЫЕ МАРШРУТЫ ---
 @app.route('/')
@@ -175,10 +128,16 @@ def home():
         game_count = db.session.query(func.count(distinct(Game.game_title))).scalar()
         users = User.query.filter_by(is_active=True).order_by(User.created_at.desc()).limit(20).all()
         
-        return render_template('home.html', users=users, user_count=user_count, games_in_db=game_count)
+        return render_template('home.html', 
+                             users=users, 
+                             user_count=user_count, 
+                             games_in_db=game_count)
     except Exception as e:
-        # Если таблиц нет, показываем пустую страницу
-        return render_template('home.html', users=[], user_count=0, games_in_db=0)
+        # Если БД не работает, показываем базовую страницу
+        return render_template('home.html', 
+                             users=[], 
+                             user_count=0, 
+                             games_in_db=0)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -193,10 +152,6 @@ def login():
                 session['user_id'] = user.id
                 session['username'] = user.username
                 flash(f'Добро пожаловать, {user.username}!', 'success')
-                
-                if is_admin():
-                    flash('👑 Вы вошли как администратор!', 'success')
-                
                 return redirect(url_for('home'))
             else:
                 flash('Неверное имя пользователя или пароль', 'error')
@@ -214,13 +169,6 @@ def register():
             password = request.form.get('password', '')
             confirm_password = request.form.get('confirm_password', '')
             
-            # Очищаем email от неактивных пользователей
-            inactive_user = User.query.filter_by(email=email, is_active=False).first()
-            if inactive_user:
-                db.session.delete(inactive_user)
-                db.session.commit()
-                flash('Старый аккаунт с этим email был удален. Можете регистрироваться заново.', 'info')
-            
             if error := validate_username(username):
                 flash(error, 'error')
             elif error := validate_email(email):
@@ -232,7 +180,7 @@ def register():
             elif User.query.filter_by(username=username).first():
                 flash('❌ Пользователь с таким именем уже существует!', 'error')
             elif User.query.filter_by(email=email).first():
-                flash('❌ Пользователь с таком email уже существует!', 'error')
+                flash('❌ Пользователь с таким email уже существует!', 'error')
             else:
                 user = User(username=username, email=email)
                 user.set_password(password)
@@ -240,13 +188,10 @@ def register():
                 db.session.commit()
                 
                 flash('✅ Регистрация успешна! Теперь войдите в систему.', 'success')
-                
-                if username in ADMIN_USERNAMES:
-                    flash('👑 Вы зарегистрировались как администратор!', 'success')
-                
                 return redirect(url_for('login'))
+                
         except Exception as e:
-            flash(f'Ошибка при регистрации. Попробуйте позже.', 'error')
+            flash(f'Ошибка при регистрации: {str(e)}', 'error')
     
     return render_template('register.html')
 
@@ -261,63 +206,89 @@ def view_profile(username):
     try:
         user = User.query.filter_by(username=username, is_active=True).first_or_404()
         return render_template('profile.html', user=user)
-    except Exception as e:
+    except:
         flash('Пользователь не найден', 'error')
         return redirect(url_for('home'))
+
+@app.route('/find_game')
+def find_game():
+    try:
+        selected_games = request.args.getlist('games') 
+        users = User.query.filter_by(is_active=True).all()
+        
+        if selected_games:
+            filtered_users = []
+            for user in users:
+                user_games = [game.game_title for game in user.games]
+                if any(game in user_games for game in selected_games):
+                    filtered_users.append(user)
+            users = filtered_users
+                
+        return render_template('find_game.html', 
+                             available_games=AVAILABLE_GAMES,
+                             found_users=users,
+                             selected_games=selected_games)
+    except:
+        return render_template('find_game.html', 
+                             available_games=AVAILABLE_GAMES,
+                             found_users=[],
+                             selected_games=[])
 
 # --- ДИАГНОСТИКА ---
 @app.route('/debug')
 def debug():
     try:
-        # Пытаемся получить данные из БД
-        user_count = User.query.count()
-        total_games = Game.query.count()
-        db_status = "connected"
-    except Exception as e:
-        user_count = 0
-        total_games = 0
-        db_status = f"error: {str(e)}"
+        # Простая проверка без сложных запросов
+        db.session.execute(text('SELECT 1'))
+        db_works = True
+    except:
+        db_works = False
     
     info = {
         'RAILWAY_ENVIRONMENT': os.environ.get('RAILWAY_ENVIRONMENT'),
         'DATABASE_URL': 'ЕСТЬ' if os.environ.get('DATABASE_URL') else 'НЕТ',
-        'SECRET_KEY': 'ЕСТЬ' if os.environ.get('SECRET_KEY') else 'НЕТ (авто)',
-        'total_users': user_count,
-        'total_games': total_games,
-        'database_status': db_status
+        'SECRET_KEY': 'ЕСТЬ' if os.environ.get('SECRET_KEY') else 'НЕТ',
+        'database_working': db_works,
+        'message': 'Проверка базовой функциональности'
     }
     return jsonify(info)
 
 @app.route('/test_db')
 def test_db():
-    """Простой тест подключения к БД"""
     try:
-        # ФИКС: Используем text() для SQL выражений
+        # Простой тест БД
         db.session.execute(text('SELECT 1'))
-        user_count = User.query.count()
+        
+        # Пытаемся посчитать пользователей (если таблица есть)
+        try:
+            user_count = User.query.count()
+        except:
+            user_count = 'Таблица не создана'
+            
         return jsonify({
             'status': 'success',
-            'message': 'База данных подключена',
+            'message': 'База данных отвечает',
             'user_count': user_count,
             'database_type': 'PostgreSQL' if os.environ.get('DATABASE_URL') else 'SQLite'
         })
     except Exception as e:
         return jsonify({
-            'status': 'error', 
-            'message': f'Ошибка БД: {str(e)}',
-            'database_type': 'PostgreSQL' if os.environ.get('DATABASE_URL') else 'SQLite'
+            'status': 'error',
+            'message': f'Ошибка БД: {str(e)}'
         }), 500
 
-# --- ЗАПУСК ПРИЛОЖЕНИЯ ---
+@app.route('/create_tables')
+def create_tables():
+    """Принудительное создание таблиц"""
+    try:
+        with app.app_context():
+            db.create_all()
+            return jsonify({'status': 'success', 'message': 'Таблицы созданы'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# --- ЗАПУСК ---
 if __name__ == '__main__':
-    # Инициализируем базу данных
-    print("🚀 Запуск инициализации базы данных...")
-    db_initialized = init_db()
-    
-    if db_initialized:
-        print("✅ Приложение готово к работе!")
-    else:
-        print("⚠️  Приложение запускается с ограниченной функциональностью")
-    
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=DEBUG_MODE)
+    debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)
