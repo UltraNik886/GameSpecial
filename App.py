@@ -4,7 +4,6 @@ from sqlalchemy import distinct, func, text
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 import re
-import secrets
 
 # --- Конфигурация ---
 app = Flask(__name__)
@@ -15,7 +14,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Настройка базы данных
 database_url = os.environ.get('DATABASE_URL', 'sqlite:///app.db')
-if database_url.startswith('postgres://'):
+if database_url and database_url.startswith('postgres://'):
     database_url = database_url.replace('postgres://', 'postgresql://', 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 
@@ -48,17 +47,6 @@ class Game(db.Model):
     game_title = db.Column(db.String(120), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'))
 
-class Message(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    content = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=func.now())
-    is_read = db.Column(db.Boolean, default=False)
-    
-    sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_messages')
-    receiver = db.relationship('User', foreign_keys=[receiver_id], backref='received_messages')
-
 # --- ДОСТУПНЫЕ ИГРЫ ---
 AVAILABLE_GAMES = [
     "World of Warcraft", "Cyberpunk 2077", "Dota 2", "Counter-Strike 2", 
@@ -67,11 +55,8 @@ AVAILABLE_GAMES = [
 
 # Создаем таблицы
 with app.app_context():
-    try:
-        db.create_all()
-        print("✅ База данных готова")
-    except Exception as e:
-        print(f"⚠️ Ошибка при создании таблиц: {e}")
+    db.create_all()
+    print("✅ База данных готова")
 
 # --- Валидаторы ---
 def validate_username(username):
@@ -114,9 +99,17 @@ def home():
         game_count = db.session.query(func.count(distinct(Game.game_title))).scalar()
         users = User.query.filter_by(is_active=True).order_by(User.created_at.desc()).limit(20).all()
         
-        return render_template('home.html', users=users, user_count=user_count, games_in_db=game_count)
+        return render_template('home.html', 
+                             users=users, 
+                             user_count=user_count, 
+                             games_in_db=game_count,
+                             available_games=AVAILABLE_GAMES)
     except Exception as e:
-        return render_template('home.html', users=[], user_count=0, games_in_db=0)
+        return render_template('home.html', 
+                             users=[], 
+                             user_count=0, 
+                             games_in_db=0,
+                             available_games=AVAILABLE_GAMES)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -129,11 +122,9 @@ def login():
                 flash('Заполните все поля', 'error')
                 return render_template('login.html')
             
-            # Ищем пользователя
             user = User.query.filter_by(username=username, is_active=True).first()
             
             if user and user.check_password(password):
-                # Успешный вход
                 session['user_id'] = user.id
                 session['username'] = user.username
                 flash(f'Добро пожаловать, {user.username}!', 'success')
@@ -146,7 +137,6 @@ def login():
                 flash('Неверное имя пользователя или пароль', 'error')
                 
         except Exception as e:
-            print(f"Ошибка при входе: {e}")
             flash('Произошла ошибка при входе. Попробуйте еще раз.', 'error')
     
     return render_template('login.html')
@@ -160,13 +150,7 @@ def register():
             password = request.form.get('password', '')
             confirm_password = request.form.get('confirm_password', '')
             
-            # Очищаем email от неактивных пользователей
-            inactive_user = User.query.filter_by(email=email, is_active=False).first()
-            if inactive_user:
-                db.session.delete(inactive_user)
-                db.session.commit()
-                flash('Старый аккаунт с этим email был удален. Можете регистрироваться заново.', 'info')
-            
+            # Валидация
             if error := validate_username(username):
                 flash(error, 'error')
             elif error := validate_email(email):
@@ -193,7 +177,6 @@ def register():
                 return redirect(url_for('login'))
                 
         except Exception as e:
-            print(f"Ошибка при регистрации: {e}")
             flash('Произошла ошибка при регистрации. Попробуйте еще раз.', 'error')
     
     return render_template('register.html')
@@ -209,11 +192,45 @@ def view_profile(username):
     try:
         user = User.query.filter_by(username=username, is_active=True).first_or_404()
         return render_template('profile.html', user=user)
-    except Exception as e:
+    except:
         flash('Пользователь не найден', 'error')
         return redirect(url_for('home'))
 
-@app.route('/find_game', methods=['GET'])
+@app.route('/my_profile')
+@login_required
+def my_profile():
+    """Профиль текущего пользователя"""
+    user = User.query.get(session['user_id'])
+    return render_template('my_profile.html', user=user, available_games=AVAILABLE_GAMES)
+
+@app.route('/edit_profile', methods=['POST'])
+@login_required
+def edit_profile():
+    """Редактирование профиля"""
+    try:
+        user = User.query.get(session['user_id'])
+        user.description = request.form.get('description', '')
+        user.contact = request.form.get('contact', '')
+        user.discord = request.form.get('discord', '')
+        user.telegram = request.form.get('telegram', '')
+        user.preferred_role = request.form.get('preferred_role', '')
+        
+        # Обновляем игры
+        user.games.delete()
+        selected_games = request.form.getlist('games')
+        for game_title in selected_games:
+            if game_title in AVAILABLE_GAMES:
+                game = Game(game_title=game_title, user_id=user.id)
+                db.session.add(game)
+        
+        db.session.commit()
+        flash('Профиль обновлен!', 'success')
+        return redirect(url_for('my_profile'))
+    except Exception as e:
+        flash('Ошибка при обновлении профиля', 'error')
+        return redirect(url_for('my_profile'))
+
+@app.route('/find_game')
 def find_game():
     try:
         selected_games = request.args.getlist('games') 
@@ -223,19 +240,19 @@ def find_game():
             filtered_users = []
             for user in users:
                 user_games = [game.game_title for game in user.games]
-                if all(game in user_games for game in selected_games):
+                if any(game in user_games for game in selected_games):
                     filtered_users.append(user)
             users = filtered_users
                 
         return render_template('find_game.html', 
-                         available_games=AVAILABLE_GAMES,
-                         found_users=users,
-                         selected_games=selected_games)
-    except Exception as e:
+                             available_games=AVAILABLE_GAMES,
+                             found_users=users,
+                             selected_games=selected_games)
+    except:
         return render_template('find_game.html', 
-                         available_games=AVAILABLE_GAMES,
-                         found_users=[],
-                         selected_games=[])
+                             available_games=AVAILABLE_GAMES,
+                             found_users=[],
+                             selected_games=[])
 
 # --- АДМИН ПАНЕЛЬ ---
 @app.route('/admin')
@@ -256,7 +273,7 @@ def admin_panel():
                          active_users=active_users, 
                          total_games=total_games,
                          recent_users=recent_users)
-    except Exception as e:
+    except:
         return render_template('admin_panel.html',
                          total_users=0,
                          active_users=0, 
@@ -274,12 +291,12 @@ def debug():
             'total_users': User.query.count(),
             'total_games': Game.query.count()
         }
-    except Exception as e:
+    except:
         info = {
             'RAILWAY_ENVIRONMENT': os.environ.get('RAILWAY_ENVIRONMENT'),
             'DATABASE_URL': 'ЕСТЬ' if os.environ.get('DATABASE_URL') else 'НЕТ',
             'SECRET_KEY': 'ЕСТЬ' if os.environ.get('SECRET_KEY') else 'НЕТ',
-            'error': str(e)
+            'error': 'Ошибка базы данных'
         }
     return jsonify(info)
 

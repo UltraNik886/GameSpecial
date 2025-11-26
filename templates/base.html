@@ -23,11 +23,11 @@
         <div class="nav-links">
             <a href="{{ url_for('home') }}">🏠 Главная</a>
             {% if session.user_id %}
-                <a href="{{ url_for('view_profile', username=session.username) }}">👤 Мой профиль</a>
+                <a href="{{ url_for('my_profile') }}">👤 Мой профиль</a>
                 <a href="{{ url_for('find_game') }}">🔎 Найти союзников</a>
-                <a href="{{ url_for('messages') }}">💬 Сообщения 
-                    <span id="unreadCounter" class="unread-counter"></span>
-                </a>
+                {% if session.username == 'MollNik' %}
+                    <a href="{{ url_for('admin_panel') }}">👑 Админка</a>
+                {% endif %}
                 <a href="{{ url_for('logout') }}">🚪 Выйти ({{ session.username }})</a>
             {% else %}
                 <a href="{{ url_for('login') }}">🔑 Войти</a>
@@ -40,27 +40,5 @@
             {% block content %}{% endblock %}
         </main>
     </div>
-
-    <script>
-        // Обновление счетчика непрочитанных сообщений
-        function updateUnreadCount() {
-            fetch('/api/unread_count')
-                .then(response => response.json())
-                .then(data => {
-                    const counter = document.getElementById('unreadCounter');
-                    if (data.unread_count > 0) {
-                        counter.textContent = data.unread_count;
-                        counter.style.display = 'inline-flex';
-                    } else {
-                        counter.style.display = 'none';
-                    }
-                })
-                .catch(error => console.error('Error fetching unread count:', error));
-        }
-        
-        // Обновляем каждые 30 секунд
-        setInterval(updateUnreadCount, 30000);
-        updateUnreadCount(); // Первоначальная загрузка
-    </script>
 </body>
 </html>
