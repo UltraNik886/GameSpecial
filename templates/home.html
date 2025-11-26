@@ -8,36 +8,6 @@
         <p class="hero-subtitle">Найди идеальных напарников для своих игровых приключений</p>
     </div>
 
-    <!-- Статистика -->
-    <div class="stats">
-        <h2>📊 Статистика</h2>
-        <div class="stats-grid">
-            <div class="stat-item">
-                <h3>👥 Геймеров</h3>
-                <p class="stat-number">{{ user_count }}</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Быстрые действия -->
-    {% if session.user_id %}
-    <div class="quick-actions">
-        <h2>⚡ Быстрые действия</h2>
-        <div class="actions-grid">
-            <a href="{{ url_for('my_profile') }}" class="action-card">
-                <div class="action-icon">👤</div>
-                <h3>Мой профиль</h3>
-                <p>Посмотреть и редактировать профиль</p>
-            </a>
-            <a href="{{ url_for('find_game') }}" class="action-card">
-                <div class="action-icon">🔎</div>
-                <h3>Найти союзников</h3>
-                <p>Найти игроков по играм</p>
-            </a>
-        </div>
-    </div>
-    {% endif %}
-
     <!-- Список профилей -->
     <div class="profiles-section">
         <h2>🎮 Список профилей ({{ users|length }})</h2>
@@ -47,9 +17,6 @@
                 {% for user in users %}
                     <div class="user-card">
                         <h3><a href="{{ url_for('view_profile', username=user.username) }}">👤 {{ user.username }}</a></h3>
-                        {% if user.preferred_role %}
-                            <p class="user-role">🎯 {{ user.preferred_role }}</p>
-                        {% endif %}
                         {% if user.games.first() %}
                             <p class="user-games">🎮 {{ user.games.first().game_title }}</p>
                         {% endif %}

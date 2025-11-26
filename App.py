@@ -30,7 +30,7 @@ class User(db.Model):
     contact = db.Column(db.String(100), default='')
     discord = db.Column(db.String(100), default='')
     telegram = db.Column(db.String(100), default='')
-    preferred_role = db.Column(db.String(100), default='') 
+    favorite_game = db.Column(db.String(100), default='')  # НОВОЕ ПОЛЕ: ЛЮБИМАЯ ИГРА
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=func.now())
     
@@ -212,33 +212,49 @@ def edit_profile():
         user = User.query.get(session['user_id'])
         
         if request.method == 'POST':
+            print("🎯 Начало обработки формы редактирования")
+            
+            # Получаем данные из формы
             user.description = request.form.get('description', '')
             user.contact = request.form.get('contact', '')
             user.discord = request.form.get('discord', '')
             user.telegram = request.form.get('telegram', '')
-            user.preferred_role = request.form.get('preferred_role', '')
+            user.favorite_game = request.form.get('favorite_game', '')  # НОВОЕ: ЛЮБИМАЯ ИГРА
             
-            # Обновляем игры
-            user.games.delete()
+            # ОБРАБОТКА ИГР
             selected_games = request.form.getlist('games')
-            for game_title in selected_games:
-                if game_title in AVAILABLE_GAMES:
-                    game = Game(game_title=game_title, user_id=user.id)
-                    db.session.add(game)
+            print(f"🎮 Получены игры из формы: {selected_games}")
+            print(f"⭐ Любимая игра: {user.favorite_game}")
             
+            # Удаляем все текущие игры пользователя
+            Game.query.filter_by(user_id=user.id).delete()
+            
+            # Добавляем новые выбранные игры
+            for game_title in selected_games:
+                if game_title and game_title.strip():
+                    game = Game(game_title=game_title.strip(), user_id=user.id)
+                    db.session.add(game)
+                    print(f"✅ Добавлена игра: {game_title}")
+            
+            # Сохраняем изменения
             db.session.commit()
-            flash('Профиль обновлен!', 'success')
+            print("💾 Изменения сохранены в базу данных")
+            
+            flash('✅ Профиль успешно обновлен!', 'success')
             return redirect(url_for('my_profile'))
         
-        # GET запрос - показываем форму
+        # GET запрос - показываем форму редактирования
         user_games = [game.game_title for game in user.games]
+        print(f"📋 Текущие игры пользователя: {user_games}")
+        
         return render_template('edit_profile.html', 
                              user=user, 
                              available_games=AVAILABLE_GAMES,
                              user_games=user_games)
         
     except Exception as e:
-        flash('Ошибка при обновлении профиля', 'error')
+        print(f"❌ Ошибка при редактировании профиля: {e}")
+        flash('❌ Ошибка при обновлении профиля', 'error')
         return redirect(url_for('my_profile'))
 
 @app.route('/find_game')
@@ -302,6 +318,37 @@ def send_message():
     """Отправка сообщения"""
     flash('Функция сообщений скоро будет доступна!', 'info')
     return redirect(url_for('home'))
+
+# --- ДОПОЛНИТЕЛЬНЫЕ МАРШРУТЫ ---
+@app.route('/chat')
+@login_required
+def chat():
+    """Чат"""
+    return render_template('chat.html')
+
+@app.route('/about')
+def about():
+    """О сайте"""
+    return render_template('about.html')
+
+@app.route('/add_game')
+@login_required
+def add_game():
+    """Добавление игры"""
+    return render_template('add_game.html', available_games=AVAILABLE_GAMES)
+
+# --- ОБРАБОТЧИКИ ОШИБОК ---
+@app.errorhandler(404)
+def not_found_error(error):
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    return render_template('500.html'), 500
+
+@app.errorhandler(403)
+def forbidden_error(error):
+    return render_template('403.html'), 403
 
 # --- ДИАГНОСТИКА ---
 @app.route('/debug')

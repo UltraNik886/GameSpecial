@@ -1,40 +1,184 @@
 {% extends "base.html" %}
 
-{% block title %}GameSpecial | Редактировать профиль{% endblock %}
-
 {% block content %}
-    <h1>⚙️ Редактирование профиля: {{ user.username }}</h1>
-
-    <div class="nav-links">
-        <a href="{{ url_for('view_profile', username=user.username) }}">↩️ Назад к профилю</a>
-        <a href="{{ url_for('add_game', username=user.username) }}">🎮 Управление играми</a>
-    </div>
-
-    <form method="POST">
-        <label for="description">О себе (Описание):</label>
-        <textarea id="description" name="description" rows="5" class="description-textarea" 
-                  placeholder="Расскажите о себе, ваших игровых предпочтениях...">{{ user.description or '' }}</textarea>
+<div class="edit-profile-container">
+    <h1>✏️ Редактирование профиля</h1>
+    
+    <form method="POST" action="{{ url_for('edit_profile') }}" class="profile-form">
+        <!-- Описание -->
+        <div class="form-group">
+            <label>📝 О себе:</label>
+            <textarea name="description" placeholder="Расскажите о себе, ваших игровых предпочтениях...">{{ user.description }}</textarea>
+        </div>
         
-        <hr>
+        <!-- Контакты -->
+        <div class="form-group">
+            <label>📞 Основные контакты:</label>
+            <input type="text" name="contact" value="{{ user.contact }}" placeholder="Discord, Steam, Battle.net и т.д.">
+        </div>
         
-        <h2>Контактная информация</h2>
-
-        <label for="discord">Discord (Имя пользователя#0000 или @имя):</label>
-        <input type="text" id="discord" name="discord" value="{{ user.discord or '' }}" 
-               placeholder="username#1234">
-
-        <label for="telegram">Telegram (Имя пользователя @имя):</label>
-        <input type="text" id="telegram" name="telegram" value="{{ user.telegram or '' }}" 
-               placeholder="@username">
-
-        <label for="contact">Другой контакт (Сайт, VK, Twitch и т.д.):</label>
-        <input type="text" id="contact" name="contact" value="{{ user.contact or '' }}" 
-               placeholder="Другие способы связи">
-
-        <label for="preferred_role">Предпочитаемая роль в играх:</label>
-        <input type="text" id="preferred_role" name="preferred_role" value="{{ user.preferred_role or '' }}" 
-               placeholder="Например: Tank, Support, Carry, Sniper...">
-
-        <button type="submit" class="button primary">💾 Сохранить изменения</button>
+        <div class="form-group">
+            <label>💬 Discord:</label>
+            <input type="text" name="discord" value="{{ user.discord }}" placeholder="username#1234">
+        </div>
+        
+        <div class="form-group">
+            <label>📱 Telegram:</label>
+            <input type="text" name="telegram" value="{{ user.telegram }}" placeholder="@username">
+        </div>
+        
+        <!-- ЛЮБИМАЯ ИГРА -->
+        <div class="form-group">
+            <label>⭐ Любимая игра:</label>
+            <select name="favorite_game" class="favorite-game-select">
+                <option value="">-- Выберите любимую игру --</option>
+                {% for game in available_games %}
+                    <option value="{{ game }}" {% if user.favorite_game == game %}selected{% endif %}>
+                        {{ game }}
+                    </option>
+                {% endfor %}
+            </select>
+            <small class="form-hint">Эта игра будет выделена в вашем профиле</small>
+        </div>
+        
+        <!-- Игры -->
+        <div class="form-group">
+            <label>🎮 Выберите игры в которые играете:</label>
+            <div style="border: 1px solid #4a5568; padding: 1rem; border-radius: 8px; background: #1a202c;">
+                {% for game in available_games %}
+                    <div style="margin: 0.5rem 0;">
+                        <input type="checkbox" id="game_{{ loop.index }}" name="games" value="{{ game }}" 
+                               {% if game in user_games %}checked{% endif %}>
+                        <label for="game_{{ loop.index }}" style="color: white; margin-left: 0.5rem;">
+                            {{ game }}
+                        </label>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Кнопки -->
+        <div class="form-buttons">
+            <button type="submit" class="btn-save">💾 Сохранить изменения</button>
+            <a href="{{ url_for('my_profile') }}" class="btn-cancel">❌ Отмена</a>
+        </div>
     </form>
+</div>
+
+<style>
+.edit-profile-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.edit-profile-container h1 {
+    color: #90cdf4;
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 2.5rem;
+}
+
+.profile-form {
+    background: #2d3748;
+    padding: 2rem;
+    border-radius: 12px;
+    border: 1px solid #4a5568;
+}
+
+.form-group {
+    margin-bottom: 2rem;
+}
+
+.form-group label {
+    display: block;
+    color: #90cdf4;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.form-group input[type="text"],
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #4a5568;
+    border-radius: 8px;
+    background: #1a202c;
+    color: white;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+.form-group textarea {
+    height: 120px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.favorite-game-select {
+    background: #1a202c;
+    border: 2px solid #d69e2e;
+}
+
+.form-hint {
+    color: #a0aec0;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    display: block;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+.form-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.btn-save {
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+    color: white;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4);
+}
+
+.btn-cancel {
+    background: #718096;
+    color: white;
+    padding: 12px 30px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-cancel:hover {
+    background: #4a5568;
+    transform: translateY(-2px);
+    color: white;
+    text-decoration: none;
+}
+</style>
 {% endblock %}

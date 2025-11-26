@@ -4,9 +4,12 @@
 <div class="profile-container">
     {% if user %}
         <div class="profile-header">
-            <h2>👤 {{ user.username }}</h2>
+            <h1>👤 {{ user.username }}</h1>
             {% if session.user_id == user.id %}
-                <a href="{{ url_for('edit_profile') }}" class="btn btn-edit">✏️ Редактировать профиль</a>
+                <a href="{{ url_for('edit_profile') }}" class="btn-edit-profile">
+                    <span class="btn-icon">✏️</span>
+                    Редактировать профиль
+                </a>
             {% endif %}
         </div>
         
@@ -34,16 +37,24 @@
                 </div>
             </div>
             
-            <div class="profile-card">
-                <h3>🎯 Роль</h3>
-                <p class="role-badge">{{ user.preferred_role or 'Не указана' }}</p>
+            <!-- ЛЮБИМАЯ ИГРА -->
+            {% if user.favorite_game %}
+            <div class="profile-card favorite-game-card">
+                <h3>⭐ Любимая игра</h3>
+                <div class="favorite-game">
+                    <span class="favorite-game-badge">{{ user.favorite_game }}</span>
+                </div>
             </div>
+            {% endif %}
             
             <div class="profile-card games-card">
                 <h3>🎮 Игры</h3>
                 <div class="games-list">
                     {% for game in user.games %}
-                        <span class="game-tag">{{ game.game_title }}</span>
+                        <span class="game-tag {% if game.game_title == user.favorite_game %}favorite-game-tag{% endif %}">
+                            {{ game.game_title }}
+                            {% if game.game_title == user.favorite_game %}⭐{% endif %}
+                        </span>
                     {% else %}
                         <p class="no-games">Игры не выбраны</p>
                     {% endfor %}
@@ -58,4 +69,133 @@
         </div>
     {% endif %}
 </div>
+
+<style>
+.btn-edit-profile {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    border: none;
+    cursor: pointer;
+}
+
+.btn-edit-profile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    color: white;
+    text-decoration: none;
+}
+
+.profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #4a5568;
+}
+
+.profile-header h1 {
+    color: #90cdf4;
+    margin: 0;
+    font-size: 2.5rem;
+}
+
+.profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.profile-card {
+    background: #2d3748;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #4a5568;
+}
+
+.favorite-game-card {
+    border: 2px solid #d69e2e;
+    background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+}
+
+.profile-card h3 {
+    color: #90cdf4;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.favorite-game-card h3 {
+    color: #d69e2e;
+}
+
+.contact-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.contact-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #4a5568;
+}
+
+.contact-label {
+    color: #a0aec0;
+    font-weight: bold;
+}
+
+.contact-value {
+    color: white;
+}
+
+.favorite-game-badge {
+    background: linear-gradient(135deg, #d69e2e 0%, #b7791f 100%);
+    color: white;
+    padding: 0.8rem 1.5rem;
+    border-radius: 25px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    display: inline-block;
+    box-shadow: 0 4px 15px rgba(214, 158, 46, 0.3);
+}
+
+.games-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.game-tag {
+    background: #4fd1c7;
+    color: #234e52;
+    padding: 0.4rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.favorite-game-tag {
+    background: linear-gradient(135deg, #d69e2e 0%, #b7791f 100%);
+    color: white;
+    border: 2px solid #f6ad55;
+}
+
+.no-games {
+    color: #a0aec0;
+    font-style: italic;
+}
+</style>
 {% endblock %}
