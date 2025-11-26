@@ -67,8 +67,11 @@ AVAILABLE_GAMES = [
 
 # Создаем таблицы
 with app.app_context():
-    db.create_all()
-    print("✅ База данных готова")
+    try:
+        db.create_all()
+        print("✅ База данных готова")
+    except Exception as e:
+        print(f"⚠️ Ошибка при создании таблиц: {e}")
 
 # --- Валидаторы ---
 def validate_username(username):
@@ -97,21 +100,6 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-def ownership_required(f):
-    from functools import wraps
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            flash('Пожалуйста, войдите в систему', 'error')
-            return redirect(url_for('login'))
-        username = kwargs.get('username')
-        user = User.query.filter_by(username=username).first_or_404()
-        if user.id != session.get('user_id'):
-            flash('У вас нет прав для этого действия', 'error')
-            return redirect(url_for('home'))
-        return f(*args, **kwargs)
-    return decorated_function
-
 # --- АДМИН СИСТЕМА ---
 ADMIN_USERNAMES = ['MollNik']
 
@@ -133,64 +121,80 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        password = request.form.get('password', '')
-        
-        user = User.query.filter_by(username=username, is_active=True).first()
-        
-        if user and user.check_password(password):
-            session['user_id'] = user.id
-            session['username'] = user.username
-            flash(f'Добро пожаловать, {user.username}!', 'success')
+        try:
+            username = request.form.get('username', '').strip()
+            password = request.form.get('password', '')
             
-            if is_admin():
-                flash('👑 Вы вошли как администратор!', 'success')
+            if not username or not password:
+                flash('Заполните все поля', 'error')
+                return render_template('login.html')
             
-            return redirect(url_for('home'))
-        else:
-            flash('Неверное имя пользователя или пароль', 'error')
+            # Ищем пользователя
+            user = User.query.filter_by(username=username, is_active=True).first()
+            
+            if user and user.check_password(password):
+                # Успешный вход
+                session['user_id'] = user.id
+                session['username'] = user.username
+                flash(f'Добро пожаловать, {user.username}!', 'success')
+                
+                if is_admin():
+                    flash('👑 Вы вошли как администратор!', 'success')
+                
+                return redirect(url_for('home'))
+            else:
+                flash('Неверное имя пользователя или пароль', 'error')
+                
+        except Exception as e:
+            print(f"Ошибка при входе: {e}")
+            flash('Произошла ошибка при входе. Попробуйте еще раз.', 'error')
     
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        email = request.form.get('email', '').strip().lower()
-        password = request.form.get('password', '')
-        confirm_password = request.form.get('confirm_password', '')
-        
-        # Очищаем email от неактивных пользователей
-        inactive_user = User.query.filter_by(email=email, is_active=False).first()
-        if inactive_user:
-            db.session.delete(inactive_user)
-            db.session.commit()
-            flash('Старый аккаунт с этим email был удален. Можете регистрироваться заново.', 'info')
-        
-        if error := validate_username(username):
-            flash(error, 'error')
-        elif error := validate_email(email):
-            flash(error, 'error')
-        elif error := validate_password(password):
-            flash(error, 'error')
-        elif password != confirm_password:
-            flash('Пароли не совпадают', 'error')
-        elif User.query.filter_by(username=username).first():
-            flash('❌ Пользователь с таким именем уже существует!', 'error')
-        elif User.query.filter_by(email=email).first():
-            flash('❌ Пользователь с таким email уже существует!', 'error')
-        else:
-            user = User(username=username, email=email)
-            user.set_password(password)
-            db.session.add(user)
-            db.session.commit()
+        try:
+            username = request.form.get('username', '').strip()
+            email = request.form.get('email', '').strip().lower()
+            password = request.form.get('password', '')
+            confirm_password = request.form.get('confirm_password', '')
             
-            flash('✅ Регистрация успешна! Теперь войдите в систему.', 'success')
+            # Очищаем email от неактивных пользователей
+            inactive_user = User.query.filter_by(email=email, is_active=False).first()
+            if inactive_user:
+                db.session.delete(inactive_user)
+                db.session.commit()
+                flash('Старый аккаунт с этим email был удален. Можете регистрироваться заново.', 'info')
             
-            if username in ADMIN_USERNAMES:
-                flash('👑 Вы зарегистрировались как администратор!', 'success')
-            
-            return redirect(url_for('login'))
+            if error := validate_username(username):
+                flash(error, 'error')
+            elif error := validate_email(email):
+                flash(error, 'error')
+            elif error := validate_password(password):
+                flash(error, 'error')
+            elif password != confirm_password:
+                flash('Пароли не совпадают', 'error')
+            elif User.query.filter_by(username=username).first():
+                flash('❌ Пользователь с таким именем уже существует!', 'error')
+            elif User.query.filter_by(email=email).first():
+                flash('❌ Пользователь с таким email уже существует!', 'error')
+            else:
+                user = User(username=username, email=email)
+                user.set_password(password)
+                db.session.add(user)
+                db.session.commit()
+                
+                flash('✅ Регистрация успешна! Теперь войдите в систему.', 'success')
+                
+                if username in ADMIN_USERNAMES:
+                    flash('👑 Вы зарегистрировались как администратор!', 'success')
+                
+                return redirect(url_for('login'))
+                
+        except Exception as e:
+            print(f"Ошибка при регистрации: {e}")
+            flash('Произошла ошибка при регистрации. Попробуйте еще раз.', 'error')
     
     return render_template('register.html')
 
@@ -202,26 +206,36 @@ def logout():
 
 @app.route('/profile/<username>')
 def view_profile(username):
-    user = User.query.filter_by(username=username, is_active=True).first_or_404()
-    return render_template('profile.html', user=user)
+    try:
+        user = User.query.filter_by(username=username, is_active=True).first_or_404()
+        return render_template('profile.html', user=user)
+    except Exception as e:
+        flash('Пользователь не найден', 'error')
+        return redirect(url_for('home'))
 
 @app.route('/find_game', methods=['GET'])
 def find_game():
-    selected_games = request.args.getlist('games') 
-    users = User.query.filter_by(is_active=True).all()
-    
-    if selected_games:
-        filtered_users = []
-        for user in users:
-            user_games = [game.game_title for game in user.games]
-            if all(game in user_games for game in selected_games):
-                filtered_users.append(user)
-        users = filtered_users
+    try:
+        selected_games = request.args.getlist('games') 
+        users = User.query.filter_by(is_active=True).all()
+        
+        if selected_games:
+            filtered_users = []
+            for user in users:
+                user_games = [game.game_title for game in user.games]
+                if all(game in user_games for game in selected_games):
+                    filtered_users.append(user)
+            users = filtered_users
                 
-    return render_template('find_game.html', 
+        return render_template('find_game.html', 
                          available_games=AVAILABLE_GAMES,
                          found_users=users,
                          selected_games=selected_games)
+    except Exception as e:
+        return render_template('find_game.html', 
+                         available_games=AVAILABLE_GAMES,
+                         found_users=[],
+                         selected_games=[])
 
 # --- АДМИН ПАНЕЛЬ ---
 @app.route('/admin')
@@ -231,27 +245,42 @@ def admin_panel():
         flash('❌ Доступ запрещен!', 'error')
         return redirect(url_for('home'))
     
-    total_users = User.query.count()
-    active_users = User.query.filter_by(is_active=True).count()
-    total_games = Game.query.count()
-    recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
-    
-    return render_template('admin_panel.html',
+    try:
+        total_users = User.query.count()
+        active_users = User.query.filter_by(is_active=True).count()
+        total_games = Game.query.count()
+        recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
+        
+        return render_template('admin_panel.html',
                          total_users=total_users,
                          active_users=active_users, 
                          total_games=total_games,
                          recent_users=recent_users)
+    except Exception as e:
+        return render_template('admin_panel.html',
+                         total_users=0,
+                         active_users=0, 
+                         total_games=0,
+                         recent_users=[])
 
 # --- ДИАГНОСТИКА ---
 @app.route('/debug')
 def debug():
-    info = {
-        'RAILWAY_ENVIRONMENT': os.environ.get('RAILWAY_ENVIRONMENT'),
-        'DATABASE_URL': 'ЕСТЬ' if os.environ.get('DATABASE_URL') else 'НЕТ',
-        'SECRET_KEY': 'ЕСТЬ' if os.environ.get('SECRET_KEY') else 'НЕТ',
-        'total_users': User.query.count(),
-        'total_games': Game.query.count()
-    }
+    try:
+        info = {
+            'RAILWAY_ENVIRONMENT': os.environ.get('RAILWAY_ENVIRONMENT'),
+            'DATABASE_URL': 'ЕСТЬ' if os.environ.get('DATABASE_URL') else 'НЕТ',
+            'SECRET_KEY': 'ЕСТЬ' if os.environ.get('SECRET_KEY') else 'НЕТ',
+            'total_users': User.query.count(),
+            'total_games': Game.query.count()
+        }
+    except Exception as e:
+        info = {
+            'RAILWAY_ENVIRONMENT': os.environ.get('RAILWAY_ENVIRONMENT'),
+            'DATABASE_URL': 'ЕСТЬ' if os.environ.get('DATABASE_URL') else 'НЕТ',
+            'SECRET_KEY': 'ЕСТЬ' if os.environ.get('SECRET_KEY') else 'НЕТ',
+            'error': str(e)
+        }
     return jsonify(info)
 
 @app.route('/test_db')
@@ -269,11 +298,6 @@ def test_db():
             'status': 'error',
             'message': f'Ошибка БД: {str(e)}'
         }), 500
-
-# --- Статические файлы ---
-@app.route('/static/<path:filename>')
-def serve_static(filename):
-    return app.send_static_file(filename)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
