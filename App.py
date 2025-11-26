@@ -200,32 +200,50 @@ def view_profile(username):
 @login_required
 def my_profile():
     """Профиль текущего пользователя"""
-    user = User.query.get(session['user_id'])
-    return render_template('my_profile.html', user=user, available_games=AVAILABLE_GAMES)
+    try:
+        user = User.query.get(session['user_id'])
+        user_games = [game.game_title for game in user.games]
+        return render_template('profile.html', 
+                             user=user, 
+                             available_games=AVAILABLE_GAMES,
+                             user_games=user_games)
+    except Exception as e:
+        flash('Ошибка при загрузке профиля', 'error')
+        return redirect(url_for('home'))
 
-@app.route('/edit_profile', methods=['POST'])
+@app.route('/edit_profile', methods=['GET', 'POST'])
 @login_required
 def edit_profile():
     """Редактирование профиля"""
     try:
         user = User.query.get(session['user_id'])
-        user.description = request.form.get('description', '')
-        user.contact = request.form.get('contact', '')
-        user.discord = request.form.get('discord', '')
-        user.telegram = request.form.get('telegram', '')
-        user.preferred_role = request.form.get('preferred_role', '')
         
-        # Обновляем игры
-        user.games.delete()
-        selected_games = request.form.getlist('games')
-        for game_title in selected_games:
-            if game_title in AVAILABLE_GAMES:
-                game = Game(game_title=game_title, user_id=user.id)
-                db.session.add(game)
+        if request.method == 'POST':
+            user.description = request.form.get('description', '')
+            user.contact = request.form.get('contact', '')
+            user.discord = request.form.get('discord', '')
+            user.telegram = request.form.get('telegram', '')
+            user.preferred_role = request.form.get('preferred_role', '')
+            
+            # Обновляем игры
+            user.games.delete()
+            selected_games = request.form.getlist('games')
+            for game_title in selected_games:
+                if game_title in AVAILABLE_GAMES:
+                    game = Game(game_title=game_title, user_id=user.id)
+                    db.session.add(game)
+            
+            db.session.commit()
+            flash('Профиль обновлен!', 'success')
+            return redirect(url_for('my_profile'))
         
-        db.session.commit()
-        flash('Профиль обновлен!', 'success')
-        return redirect(url_for('my_profile'))
+        # GET запрос - показываем форму
+        user_games = [game.game_title for game in user.games]
+        return render_template('edit_profile.html', 
+                             user=user, 
+                             available_games=AVAILABLE_GAMES,
+                             user_games=user_games)
+        
     except Exception as e:
         flash('Ошибка при обновлении профиля', 'error')
         return redirect(url_for('my_profile'))
@@ -258,11 +276,12 @@ def find_game():
 @app.route('/admin')
 @login_required
 def admin_panel():
-    if not is_admin():
-        flash('❌ Доступ запрещен!', 'error')
-        return redirect(url_for('home'))
-    
+    """Админ панель"""
     try:
+        if not is_admin():
+            flash('❌ Доступ запрещен!', 'error')
+            return redirect(url_for('home'))
+        
         total_users = User.query.count()
         active_users = User.query.filter_by(is_active=True).count()
         total_games = Game.query.count()
@@ -273,12 +292,33 @@ def admin_panel():
                          active_users=active_users, 
                          total_games=total_games,
                          recent_users=recent_users)
-    except:
-        return render_template('admin_panel.html',
-                         total_users=0,
-                         active_users=0, 
-                         total_games=0,
-                         recent_users=[])
+    except Exception as e:
+        flash(f'Ошибка админки: {str(e)}', 'error')
+        return redirect(url_for('home'))
+
+# --- ДОПОЛНИТЕЛЬНЫЕ МАРШРУТЫ ДЛЯ СУЩЕСТВУЮЩИХ ШАБЛОНОВ ---
+@app.route('/messages')
+@login_required
+def messages():
+    """Страница сообщений"""
+    return render_template('messages.html')
+
+@app.route('/chat')
+@login_required
+def chat():
+    """Чат"""
+    return render_template('chat.html')
+
+@app.route('/about')
+def about():
+    """О сайте"""
+    return render_template('about.html')
+
+@app.route('/add_game')
+@login_required
+def add_game():
+    """Добавление игры"""
+    return render_template('add_game.html', available_games=AVAILABLE_GAMES)
 
 # --- ДИАГНОСТИКА ---
 @app.route('/debug')
