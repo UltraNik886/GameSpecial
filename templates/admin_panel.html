@@ -1,157 +1,29 @@
 {% extends "base.html" %}
 
-{% block title %}Админ Панель{% endblock %}
-
 {% block content %}
 <div class="admin-container">
-    <div class="admin-header">
-        <h1>👑 Админ Панель</h1>
-        <p>Добро пожаловать, <strong>{{ session.username }}</strong>!</p>
-        <div class="admin-nav">
-            <a href="{{ url_for('admin_users') }}" class="button">👥 Пользователи</a>
-            <a href="{{ url_for('admin_games') }}" class="button">🎮 Игры</a>
-            <a href="{{ url_for('home') }}" class="button secondary">🌐 На сайт</a>
-        </div>
-    </div>
-
-    <div class="admin-stats">
+    <h2>👑 Панель администратора</h2>
+    
+    <div class="stats">
         <div class="stat-card">
             <h3>👥 Пользователи</h3>
-            <p class="stat-number">{{ total_users }}</p>
-            <p>Всего / Активных: {{ active_users }}</p>
+            <p>Всего: {{ total_users }}</p>
+            <p>Активных: {{ active_users }}</p>
         </div>
+        
         <div class="stat-card">
             <h3>🎮 Игры</h3>
-            <p class="stat-number">{{ total_games }}</p>
-            <p>Всего записей</p>
-        </div>
-        <div class="stat-card">
-            <h3>💬 Сообщения</h3>
-            <p class="stat-number">{{ total_messages }}</p>
-            <p>Всего в чате</p>
+            <p>Всего записей: {{ total_games }}</p>
         </div>
     </div>
 
-    <div class="admin-sections">
-        <div class="section">
-            <h2>🎯 Популярные игры</h2>
-            {% if popular_games %}
-                {% for game, count in popular_games %}
-                <div class="game-stat">
-                    <span class="game-name">{{ game }}</span>
-                    <span class="game-count">{{ count }} игроков</span>
-                </div>
-                {% endfor %}
-            {% else %}
-                <p>Пока нет данных об играх</p>
-            {% endif %}
-        </div>
-
-        <div class="section">
-            <h2>🆕 Последние пользователи</h2>
-            {% for user in recent_users %}
-            <div class="user-item">
-                <div class="user-info">
-                    <strong>{{ user.username }}</strong>
-                    <small>{{ user.created_at.strftime('%d.%m.%Y') }}</small>
-                </div>
-                <a href="{{ url_for('admin_view_user', user_id=user.id) }}" class="button small">👁️</a>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
+    <h3>📊 Недавние пользователи:</h3>
+    <ul>
+        {% for user in recent_users %}
+            <li>{{ user.username }} ({{ user.created_at.strftime('%d.%m.%Y') }})</li>
+        {% else %}
+            <li>Нет пользователей</li>
+        {% endfor %}
+    </ul>
 </div>
-
-<style>
-.admin-container {
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.admin-header {
-    text-align: center;
-    margin-bottom: 40px;
-    padding: 20px;
-    background: linear-gradient(135deg, #3c1e63, #4b2a75);
-    border-radius: 10px;
-}
-
-.admin-nav {
-    margin-top: 20px;
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    flex-wrap: wrap;
-}
-
-.admin-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    margin: 30px 0;
-}
-
-.stat-card {
-    background: linear-gradient(135deg, #2e1a47, #3c1e63);
-    padding: 25px;
-    border-radius: 10px;
-    text-align: center;
-    border-left: 5px solid #ffcc00;
-}
-
-.stat-number {
-    font-size: 2.5em;
-    font-weight: bold;
-    color: #ffcc00;
-    margin: 10px 0;
-}
-
-.admin-sections {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 30px;
-    margin-top: 40px;
-}
-
-.section {
-    background: #2e1a47;
-    padding: 20px;
-    border-radius: 10px;
-}
-
-.game-stat {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    margin: 5px 0;
-    background: #3c1e63;
-    border-radius: 5px;
-}
-
-.user-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    margin: 5px 0;
-    background: #3c1e63;
-    border-radius: 5px;
-}
-
-.button.small {
-    padding: 5px 10px;
-    font-size: 0.8em;
-}
-
-@media (max-width: 768px) {
-    .admin-sections {
-        grid-template-columns: 1fr;
-    }
-    
-    .admin-nav {
-        flex-direction: column;
-    }
-}
-</style>
 {% endblock %}

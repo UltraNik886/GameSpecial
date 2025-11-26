@@ -1,108 +1,34 @@
 {% extends "base.html" %}
 
-{% block title %}GameSpecial | Профиль {{ user.username }}{% endblock %}
-
 {% block content %}
-    <h1 style="border-bottom: 2px solid #ff6b81;">Профиль: {{ user.username }}</h1>
-    
-    <div class="nav-links">
-        {% if session.user_id == user.id %}
-            <a href="{{ url_for('edit_profile', username=user.username) }}">✏️ Редактировать профиль</a>
-            <a href="{{ url_for('add_game', username=user.username) }}">🎮 Управление играми</a>
-            {% if session.user_id != user.id %}
-                <a href="{{ url_for('chat', username=user.username) }}" class="button primary">💬 Написать сообщение</a>
-            {% endif %}
-        {% else %}
-            <a href="{{ url_for('chat', username=user.username) }}" class="button primary">💬 Написать сообщение</a>
-        {% endif %}
-    </div>
-
-    <div class="profile-details">
-        <h2>О себе</h2>
-        <div class="stylish-text-block">
-            {{ user.description or "Пользователь пока не добавил описание" }}
-        </div>
+<div class="profile-container">
+    {% if user %}
+        <h2>👤 Профиль: {{ user.username }}</h2>
         
-        <hr>
-        
-        <h2>Контактная информация</h2>
-        {% set contact_found = false %}
-
-        <!-- Discord -->
-        {% if user.discord %}
-            <p><strong>Discord:</strong> <span class="highlight">{{ user.discord }}</span></p>
-            {% set contact_found = true %}
-        {% endif %}
-        
-        <!-- Telegram -->
-        {% if user.telegram %}
-            <p><strong>Telegram:</strong> <span class="highlight">{{ user.telegram }}</span></p>
-            {% set contact_found = true %}
-        {% endif %}
-
-        <!-- Другой контакт -->
-        {% if user.contact %}
-            <p><strong>Другой контакт:</strong> <span class="highlight">{{ user.contact }}</span></p>
-            {% set contact_found = true %}
-        {% endif %}
-
-        <!-- Если контакты не указаны -->
-        {% if not contact_found %}
-            <p class="placeholder-text">Контакты не указаны.</p>
-        {% endif %}
-
-        <hr>
-
-        <h2>Игры {{ user.username }}</h2>
-        {% if user.games.count() > 0 %}
-            <div class="games-grid">
+        <div class="profile-info">
+            <p><strong>Описание:</strong> {{ user.description or 'Не указано' }}</p>
+            <p><strong>Контакты:</strong> {{ user.contact or 'Не указано' }}</p>
+            <p><strong>Discord:</strong> {{ user.discord or 'Не указано' }}</p>
+            <p><strong>Telegram:</strong> {{ user.telegram or 'Не указано' }}</p>
+            <p><strong>Предпочитаемая роль:</strong> {{ user.preferred_role or 'Не указано' }}</p>
+            
+            <h3>🎮 Игры:</h3>
+            <ul>
                 {% for game in user.games %}
-                    <span class="game-tag">{{ game.game_title }}</span>
+                    <li>{{ game.game_title }}</li>
+                {% else %}
+                    <li>Игры не выбраны</li>
                 {% endfor %}
-            </div>
-        {% else %}
-            <p class="placeholder-text">Пользователь пока не добавил ни одной игры.</p>
-        {% endif %}
-        
-        {% if user.preferred_role %}
-        <hr>
-        <h2>Предпочитаемая роль</h2>
-        <p><span class="highlight">{{ user.preferred_role }}</span></p>
-        {% endif %}
-        
-        <hr>
-        
-        <div class="profile-actions">
-            {% if session.user_id == user.id %}
-                <form action="{{ url_for('delete_user', username=user.username) }}" method="POST" 
-                      onsubmit="return confirm('Вы уверены, что хотите удалить свой профиль? Это действие нельзя отменить.');">
-                    <button type="submit" class="delete-button">🗑️ Удалить профиль</button>
-                </form>
-            {% endif %}
+            </ul>
         </div>
-    </div>
 
-    <style>
-        .games-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin: 15px 0;
-        }
-
-        .game-tag {
-            background: linear-gradient(135deg, #ff6b81, #e55a70);
-            color: white;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 0.9em;
-            font-weight: bold;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-
-        .profile-actions {
-            margin-top: 20px;
-            text-align: center;
-        }
-    </style>
+        {% if session.user_id == user.id %}
+            <a href="{{ url_for('edit_profile') }}" class="btn">✏️ Редактировать профиль</a>
+        {% endif %}
+    {% else %}
+        <h2>❌ Пользователь не найден</h2>
+        <p>Такого пользователя не существует или он деактивирован.</p>
+        <a href="{{ url_for('home') }}">← На главную</a>
+    {% endif %}
+</div>
 {% endblock %}
