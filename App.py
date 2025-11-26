@@ -116,7 +116,7 @@ def ownership_required(f):
     return decorated_function
 
 # --- АДМИН СИСТЕМА ---
-ADMIN_USERNAMES = ['MollNik']  # ← ТВОЙ USERNAME УЖЕ ПРОПИСАН!
+ADMIN_USERNAMES = ['MollNik']  # ← ТОЛЬКО ЭТИ ПОЛЬЗОВАТЕЛИ МОГУТ В АДМИНКУ!
 
 def is_admin():
     """Проверяет является ли пользователь админом"""
@@ -126,7 +126,7 @@ def is_admin():
 @app.route('/admin')
 @login_required
 def admin_panel():
-    """Главная админ панель"""
+    """Главная админ панель - ТОЛЬКО ДЛЯ АДМИНОВ!"""
     if not is_admin():
         flash('❌ Доступ запрещен! Только для администраторов.', 'error')
         return redirect(url_for('home'))
@@ -157,7 +157,7 @@ def admin_panel():
 @app.route('/admin/users')
 @login_required
 def admin_users():
-    """Управление пользователями"""
+    """Управление пользователями - ТОЛЬКО ДЛЯ АДМИНОВ!"""
     if not is_admin():
         flash('❌ Доступ запрещен!', 'error')
         return redirect(url_for('home'))
@@ -168,7 +168,7 @@ def admin_users():
 @app.route('/admin/delete_user/<int:user_id>', methods=['POST'])
 @login_required  
 def admin_delete_user(user_id):
-    """Полное удаление пользователя"""
+    """Полное удаление пользователя - ТОЛЬКО ДЛЯ АДМИНОВ!"""
     if not is_admin():
         flash('❌ Доступ запрещен!', 'error')
         return redirect(url_for('home'))
@@ -191,7 +191,7 @@ def admin_delete_user(user_id):
 @app.route('/admin/deactivate_user/<int:user_id>', methods=['POST'])
 @login_required
 def admin_deactivate_user(user_id):
-    """Деактивация пользователя"""
+    """Деактивация пользователя - ТОЛЬКО ДЛЯ АДМИНОВ!"""
     if not is_admin():
         flash('❌ Доступ запрещен!', 'error')
         return redirect(url_for('home'))
@@ -206,7 +206,7 @@ def admin_deactivate_user(user_id):
 @app.route('/admin/activate_user/<int:user_id>', methods=['POST'])
 @login_required
 def admin_activate_user(user_id):
-    """Активация пользователя"""
+    """Активация пользователя - ТОЛЬКО ДЛЯ АДМИНОВ!"""
     if not is_admin():
         flash('❌ Доступ запрещен!', 'error')
         return redirect(url_for('home'))
@@ -221,7 +221,7 @@ def admin_activate_user(user_id):
 @app.route('/admin/view_user/<int:user_id>')
 @login_required
 def admin_view_user(user_id):
-    """Просмотр детальной информации о пользователе"""
+    """Просмотр детальной информации о пользователе - ТОЛЬКО ДЛЯ АДМИНОВ!"""
     if not is_admin():
         flash('❌ Доступ запрещен!', 'error')
         return redirect(url_for('home'))
@@ -240,7 +240,7 @@ def admin_view_user(user_id):
 @app.route('/admin/games')
 @login_required
 def admin_games():
-    """Статистика по играм"""
+    """Статистика по играм - ТОЛЬКО ДЛЯ АДМИНОВ!"""
     if not is_admin():
         flash('❌ Доступ запрещен!', 'error')
         return redirect(url_for('home'))
@@ -257,7 +257,7 @@ def admin_games():
 with app.app_context():
     db.create_all()
 
-# --- ОСНОВНЫЕ МАРШРУТЫ (без изменений) ---
+# --- ОСНОВНЫЕ МАРШРУТЫ ---
 @app.route('/')
 def home():
     user_count = User.query.filter_by(is_active=True).count()
@@ -282,6 +282,11 @@ def login():
             session['user_id'] = user.id
             session['username'] = user.username
             flash(f'Добро пожаловать, {user.username}!', 'success')
+            
+            # Если это админ - покажем сообщение
+            if is_admin():
+                flash('👑 Вы вошли как администратор!', 'success')
+            
             return redirect(url_for('home'))
         else:
             flash('Неверное имя пользователя или пароль', 'error')
@@ -296,6 +301,14 @@ def register():
         password = request.form.get('password', '')
         confirm_password = request.form.get('confirm_password', '')
         
+        # Очищаем email от неактивных пользователей
+        inactive_user = User.query.filter_by(email=email, is_active=False).first()
+        if inactive_user:
+            # Полностью удаляем неактивного пользователя с этим email
+            db.session.delete(inactive_user)
+            db.session.commit()
+            flash('Старый аккаунт с этим email был удален. Можете регистрироваться заново.', 'info')
+        
         if error := validate_username(username):
             flash(error, 'error')
         elif error := validate_email(email):
@@ -305,21 +318,124 @@ def register():
         elif password != confirm_password:
             flash('Пароли не совпадают', 'error')
         elif User.query.filter_by(username=username).first():
-            flash('Пользователь с таким именем уже существует', 'error')
-        elif User.query.filter_by(email=email, is_active=True).first():
-            flash('Пользователь с таким email уже существует', 'error')
+            flash('❌ Пользователь с таким именем уже существует!', 'error')
+        elif User.query.filter_by(email=email).first():
+            flash('❌ Пользователь с таким email уже существует!', 'error')
         else:
             user = User(username=username, email=email)
             user.set_password(password)
             db.session.add(user)
             db.session.commit()
-            flash('Регистрация успешна! Теперь войдите в систему.', 'success')
+            
+            flash('✅ Регистрация успешна! Теперь войдите в систему.', 'success')
+            
+            # Если зарегистрировался админ - особое сообщение
+            if username in ADMIN_USERNAMES:
+                flash('👑 Вы зарегистрировались как администратор!', 'success')
+            
             return redirect(url_for('login'))
     
     return render_template('register.html')
 
-# ... остальные маршруты (logout, profile, edit_profile, add_game, delete_game, find_game, messages, chat, send_message) ...
-# КОПИРУЕШЬ ИХ ИЗ ПРЕДЫДУЩЕЙ ВЕРСИИ БЕЗ ИЗМЕНЕНИЙ
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('Вы вышли из системы', 'info')
+    return redirect(url_for('home'))
+
+@app.route('/profile/<username>')
+def view_profile(username):
+    user = User.query.filter_by(username=username, is_active=True).first_or_404()
+    return render_template('profile.html', user=user)
+
+@app.route('/edit_profile/<username>', methods=['GET', 'POST'])
+@login_required
+@ownership_required
+def edit_profile(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    
+    if request.method == 'POST':
+        user.description = request.form.get('description', '')[:500]
+        user.contact = request.form.get('contact', '')[:100]
+        user.discord = request.form.get('discord', '')[:100]
+        user.telegram = request.form.get('telegram', '')[:100]
+        user.preferred_role = request.form.get('preferred_role', '')[:100]
+        
+        db.session.commit()
+        flash('Профиль успешно обновлен!', 'success')
+        return redirect(url_for('view_profile', username=user.username))
+        
+    return render_template('edit_profile.html', user=user)
+
+@app.route('/add_game/<username>', methods=['GET', 'POST'])
+@login_required
+@ownership_required
+def add_game(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    
+    if request.method == 'POST':
+        game_title = request.form.get('game_title')
+        if game_title and game_title in AVAILABLE_GAMES:
+            exists = Game.query.filter_by(user_id=user.id, game_title=game_title).first()
+            if not exists:
+                new_game = Game(game_title=game_title, player=user)
+                db.session.add(new_game)
+                db.session.commit()
+                flash(f'Игра {game_title} добавлена!', 'success')
+            else:
+                flash('Эта игра уже есть в вашем профиле', 'warning')
+            return redirect(url_for('add_game', username=user.username))
+            
+    return render_template('add_game.html', user=user, available_games=AVAILABLE_GAMES)
+
+@app.route('/delete_game/<username>/<int:game_id>', methods=['POST'])
+@login_required
+@ownership_required
+def delete_game(username, game_id):
+    game = Game.query.filter_by(id=game_id).first_or_404()
+    
+    if game.player.username != username:
+        flash('Ошибка доступа', 'error')
+        return redirect(url_for('home'))
+    
+    db.session.delete(game)
+    db.session.commit()
+    flash('Игра удалена из профиля', 'success')
+    
+    return redirect(url_for('add_game', username=username))
+
+@app.route('/find_game', methods=['GET'])
+def find_game():
+    selected_games = request.args.getlist('games') 
+    contact_filters = request.args.getlist('contact_filter') 
+    
+    query = User.query.filter_by(is_active=True)
+    
+    if selected_games:
+        for game_title in selected_games:
+            query = query.filter(User.games.any(game_title=game_title))
+    
+    found_users = query.all()
+    
+    if contact_filters:
+        filtered_users = []
+        for user in found_users:
+            has_required_contact = False
+            if 'discord' in contact_filters and user.discord:
+                has_required_contact = True
+            if 'telegram' in contact_filters and user.telegram:
+                has_required_contact = True
+            if has_required_contact:
+                filtered_users.append(user)
+        found_users = filtered_users
+                
+    return render_template(
+        'find_game.html', 
+        available_games=AVAILABLE_GAMES,
+        found_users=found_users,
+        selected_games=selected_games,
+        contact_filters=contact_filters 
+    )
 
 @app.route('/delete_user/<username>', methods=['POST'])
 @login_required
