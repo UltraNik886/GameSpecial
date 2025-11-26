@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Админ - Пользователи{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>👥 Управление пользователями</h1>
+        <div class="admin-nav">
+            <a href="{{ url_for('admin_panel') }}" class="button">← Назад</a>
+            <a href="{{ url_for('admin_games') }}" class="button">🎮 Игры</a>
+        </div>
+    </div>
+
+    <div class="users-list">
+        {% for user in users %}
+        <div class="user-card {% if not user.is_active %}inactive{% endif %}">
+            <div class="user-info">
+                <h3>{{ user.username }}</h3>
+                <p><strong>Email:</strong> {{ user.email }}</p>
+                <p><strong>Зарегистрирован:</strong> {{ user.created_at.strftime('%d.%m.%Y %H:%M') }}</p>
+                <p><strong>Игр:</strong> {{ user.games.count() }}</p>
+                <p><strong>Статус:</strong> 
+                    {% if user.is_active %}
+                        <span style="color: #4CAF50;">✅ Активен</span>
+                    {% else %}
+                        <span style="color: #f44336;">❌ Неактивен</span>
+                    {% endif %}
+                </p>
+            </div>
+            <div class="user-actions">
+                <a href="{{ url_for('admin_view_user', user_id=user.id) }}" class="button small">👁️ Просмотр</a>
+                
+                {% if user.is_active %}
+                    <form method="POST" action="{{ url_for('admin_deactivate_user', user_id=user.id) }}" style="display: inline;">
+                        <button type="submit" class="button small warning" onclick="return confirm('Деактивировать {{ user.username }}?')">🚫 Деактивировать</button>
+                    </form>
+                {% else %}
+                    <form method="POST" action="{{ url_for('admin_activate_user', user_id=user.id) }}" style="display: inline;">
+                        <button type="submit" class="button small success" onclick="return confirm('Активировать {{ user.username }}?')">✅ Активировать</button>
+                    </form>
+                {% endif %}
+                
+                <form method="POST" action="{{ url_for('admin_delete_user', user_id=user.id) }}" style="display: inline;">
+                    <button type="submit" class="button small delete" onclick="return confirm('ВНИМАНИЕ! Это полностью удалит пользователя {{ user.username }} и все его данные. Продолжить?')">🗑️ Удалить</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.user-card {
+    background: #2e1a47;
+    padding: 20px;
+    margin: 15px 0;
+    border-radius: 10px;
+    border-left: 5px solid #ff6b81;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.user-card.inactive {
+    opacity: 0.7;
+    border-left-color: #a491d3;
+}
+
+.user-info {
+    flex-grow: 1;
+    margin-right: 20px;
+}
+
+.user-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.button.small {
+    padding: 8px 12px;
+    font-size: 0.8em;
+}
+
+.button.warning {
+    background: linear-gradient(135deg, #ff9800, #f57c00);
+}
+
+.button.success {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+}
+
+.button.delete {
+    background: linear-gradient(135deg, #ff4d4d, #cc0000);
+}
+
+@media (max-width: 768px) {
+    .user-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .user-actions {
+        margin-top: 15px;
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}

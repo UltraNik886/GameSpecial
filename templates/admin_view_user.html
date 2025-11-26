@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Просмотр пользователя {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>👤 Просмотр пользователя: {{ user.username }}</h1>
+        <div class="admin-nav">
+            <a href="{{ url_for('admin_users') }}" class="button">← Назад к списку</a>
+            <a href="{{ url_for('admin_panel') }}" class="button">🏠 Главная админки</a>
+        </div>
+    </div>
+
+    <div class="user-details">
+        <div class="detail-section">
+            <h2>📊 Основная информация</h2>
+            <p><strong>ID:</strong> {{ user.id }}</p>
+            <p><strong>Username:</strong> {{ user.username }}</p>
+            <p><strong>Email:</strong> {{ user.email }}</p>
+            <p><strong>Дата регистрации:</strong> {{ user.created_at.strftime('%d.%m.%Y %H:%M') }}</p>
+            <p><strong>Статус:</strong> 
+                {% if user.is_active %}
+                    <span style="color: #4CAF50;">✅ Активен</span>
+                {% else %}
+                    <span style="color: #f44336;">❌ Неактивен</span>
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="detail-section">
+            <h2>📈 Статистика</h2>
+            <p><strong>Отправлено сообщений:</strong> {{ sent_messages }}</p>
+            <p><strong>Получено сообщений:</strong> {{ received_messages }}</p>
+            <p><strong>Всего игр в профиле:</strong> {{ user_games|length }}</p>
+        </div>
+
+        {% if user.description %}
+        <div class="detail-section">
+            <h2>📝 Описание</h2>
+            <div class="description-box">{{ user.description }}</div>
+        </div>
+        {% endif %}
+
+        <div class="detail-section">
+            <h2>🎮 Игры пользователя</h2>
+            {% if user_games %}
+                <div class="games-grid">
+                    {% for game in user_games %}
+                        <span class="game-tag">{{ game.game_title }}</span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>Пользователь пока не добавил игр</p>
+            {% endif %}
+        </div>
+
+        {% if user.discord or user.telegram or user.contact %}
+        <div class="detail-section">
+            <h2>📞 Контакты</h2>
+            {% if user.discord %}<p><strong>Discord:</strong> {{ user.discord }}</p>{% endif %}
+            {% if user.telegram %}<p><strong>Telegram:</strong> {{ user.telegram }}</p>{% endif %}
+            {% if user.contact %}<p><strong>Другие контакты:</strong> {{ user.contact }}</p>{% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.user-details {
+    background: #2e1a47;
+    padding: 30px;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+
+.detail-section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #3c1e63;
+}
+
+.detail-section:last-child {
+    border-bottom: none;
+}
+
+.description-box {
+    background: #3c1e63;
+    padding: 15px;
+    border-radius: 5px;
+    border-left: 3px solid #ffcc00;
+}
+
+.games-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.game-tag {
+    background: linear-gradient(135deg, #ff6b81, #e55a70);
+    color: white;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    font-weight: bold;
+}
+</style>
+{% endblock %}
