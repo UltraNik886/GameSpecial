@@ -50,7 +50,7 @@ class Game(db.Model):
 # --- ДОСТУПНЫЕ ИГРЫ ---
 AVAILABLE_GAMES = [
     "World of Warcraft", "Cyberpunk 2077", "Dota 2", "Counter-Strike 2", 
-    "Baldur's Gate 3", "Minecraft", "Apex Legends", "Genshin Impact", "Rocket League"
+    "Baldur's Gate 3", "Minecraft", "Apex Legends", "Genshin Impact", "Rocket League", "Geometry Dash", "Roblox", "Among Us"
 ]
 
 # Создаем таблицы
