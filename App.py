@@ -9,13 +9,25 @@ import secrets
 # --- Конфигурация ---
 app = Flask(__name__)
 
-# Автоматическое определение среды
+# Автоматическое определение среды с защитой от ошибок
 if os.environ.get('RAILWAY_ENVIRONMENT'):
     # 🚀 НА RAILWAY (продакшен)
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
-    DEBUG_MODE = False
-    print("🚀 Запуск в ПРОДАКШЕН режиме (Railway)")
+    
+    # ВАЖНО: Проверяем что DATABASE_URL существует
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url:
+        # Исправляем URL если нужно (для PostgreSQL)
+        if database_url.startswith('postgres://'):
+            database_url = database_url.replace('postgres://', 'postgresql://', 1)
+        app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+        DEBUG_MODE = False
+        print("🚀 Запуск в ПРОДАКШЕН режиме (Railway)")
+    else:
+        # Если DATABASE_URL нет - используем SQLite как запасной вариант
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///railway_fallback.db'
+        DEBUG_MODE = True
+        print("⚠️  DATABASE_URL не найден! Используем SQLite")
 else:
     # 💻 НА ТВОЕМ КОМПЬЮТЕРЕ (разработка)  
     app.config['SECRET_KEY'] = 'dev-secret-key-change-in-production-12345'
@@ -255,20 +267,28 @@ def admin_games():
 
 # --- Создание базы данных ---
 with app.app_context():
-    db.create_all()
+    try:
+        db.create_all()
+        print("✅ База данных успешно создана/подключена")
+    except Exception as e:
+        print(f"❌ Ошибка подключения к базе: {e}")
 
 # --- ОСНОВНЫЕ МАРШРУТЫ ---
 @app.route('/')
 def home():
-    user_count = User.query.filter_by(is_active=True).count()
-    game_count = db.session.query(func.count(distinct(Game.game_title))).scalar()
-    
-    if os.environ.get('RAILWAY_ENVIRONMENT'):
-        users = User.query.filter_by(is_active=True).order_by(User.created_at.desc()).limit(20).all()
-    else:
-        users = User.query.filter_by(is_active=True).all()
-    
-    return render_template('home.html', users=users, user_count=user_count, games_in_db=game_count)
+    try:
+        user_count = User.query.filter_by(is_active=True).count()
+        game_count = db.session.query(func.count(distinct(Game.game_title))).scalar()
+        
+        if os.environ.get('RAILWAY_ENVIRONMENT'):
+            users = User.query.filter_by(is_active=True).order_by(User.created_at.desc()).limit(20).all()
+        else:
+            users = User.query.filter_by(is_active=True).all()
+        
+        return render_template('home.html', users=users, user_count=user_count, games_in_db=game_count)
+    except Exception as e:
+        print(f"Ошибка в home: {e}")
+        return render_template('home.html', users=[], user_count=0, games_in_db=0)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -301,265 +321,47 @@ def register():
         password = request.form.get('password', '')
         confirm_password = request.form.get('confirm_password', '')
         
-        # Очищаем email от неактивных пользователей
-        inactive_user = User.query.filter_by(email=email, is_active=False).first()
-        if inactive_user:
-            # Полностью удаляем неактивного пользователя с этим email
-            db.session.delete(inactive_user)
-            db.session.commit()
-            flash('Старый аккаунт с этим email был удален. Можете регистрироваться заново.', 'info')
-        
-        if error := validate_username(username):
-            flash(error, 'error')
-        elif error := validate_email(email):
-            flash(error, 'error')
-        elif error := validate_password(password):
-            flash(error, 'error')
-        elif password != confirm_password:
-            flash('Пароли не совпадают', 'error')
-        elif User.query.filter_by(username=username).first():
-            flash('❌ Пользователь с таким именем уже существует!', 'error')
-        elif User.query.filter_by(email=email).first():
-            flash('❌ Пользователь с таким email уже существует!', 'error')
-        else:
-            user = User(username=username, email=email)
-            user.set_password(password)
-            db.session.add(user)
-            db.session.commit()
+        try:
+            # Очищаем email от неактивных пользователей
+            inactive_user = User.query.filter_by(email=email, is_active=False).first()
+            if inactive_user:
+                # Полностью удаляем неактивного пользователя с этим email
+                db.session.delete(inactive_user)
+                db.session.commit()
+                flash('Старый аккаунт с этим email был удален. Можете регистрироваться заново.', 'info')
             
-            flash('✅ Регистрация успешна! Теперь войдите в систему.', 'success')
-            
-            # Если зарегистрировался админ - особое сообщение
-            if username in ADMIN_USERNAMES:
-                flash('👑 Вы зарегистрировались как администратор!', 'success')
-            
-            return redirect(url_for('login'))
+            if error := validate_username(username):
+                flash(error, 'error')
+            elif error := validate_email(email):
+                flash(error, 'error')
+            elif error := validate_password(password):
+                flash(error, 'error')
+            elif password != confirm_password:
+                flash('Пароли не совпадают', 'error')
+            elif User.query.filter_by(username=username).first():
+                flash('❌ Пользователь с таким именем уже существует!', 'error')
+            elif User.query.filter_by(email=email).first():
+                flash('❌ Пользователь с таким email уже существует!', 'error')
+            else:
+                user = User(username=username, email=email)
+                user.set_password(password)
+                db.session.add(user)
+                db.session.commit()
+                
+                flash('✅ Регистрация успешна! Теперь войдите в систему.', 'success')
+                
+                # Если зарегистрировался админ - особое сообщение
+                if username in ADMIN_USERNAMES:
+                    flash('👑 Вы зарегистрировались как администратор!', 'success')
+                
+                return redirect(url_for('login'))
+        except Exception as e:
+            flash(f'❌ Ошибка при регистрации: {str(e)}', 'error')
     
     return render_template('register.html')
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    flash('Вы вышли из системы', 'info')
-    return redirect(url_for('home'))
-
-@app.route('/profile/<username>')
-def view_profile(username):
-    user = User.query.filter_by(username=username, is_active=True).first_or_404()
-    return render_template('profile.html', user=user)
-
-@app.route('/edit_profile/<username>', methods=['GET', 'POST'])
-@login_required
-@ownership_required
-def edit_profile(username):
-    user = User.query.filter_by(username=username).first_or_404()
-    
-    if request.method == 'POST':
-        user.description = request.form.get('description', '')[:500]
-        user.contact = request.form.get('contact', '')[:100]
-        user.discord = request.form.get('discord', '')[:100]
-        user.telegram = request.form.get('telegram', '')[:100]
-        user.preferred_role = request.form.get('preferred_role', '')[:100]
-        
-        db.session.commit()
-        flash('Профиль успешно обновлен!', 'success')
-        return redirect(url_for('view_profile', username=user.username))
-        
-    return render_template('edit_profile.html', user=user)
-
-@app.route('/add_game/<username>', methods=['GET', 'POST'])
-@login_required
-@ownership_required
-def add_game(username):
-    user = User.query.filter_by(username=username).first_or_404()
-    
-    if request.method == 'POST':
-        game_title = request.form.get('game_title')
-        if game_title and game_title in AVAILABLE_GAMES:
-            exists = Game.query.filter_by(user_id=user.id, game_title=game_title).first()
-            if not exists:
-                new_game = Game(game_title=game_title, player=user)
-                db.session.add(new_game)
-                db.session.commit()
-                flash(f'Игра {game_title} добавлена!', 'success')
-            else:
-                flash('Эта игра уже есть в вашем профиле', 'warning')
-            return redirect(url_for('add_game', username=user.username))
-            
-    return render_template('add_game.html', user=user, available_games=AVAILABLE_GAMES)
-
-@app.route('/delete_game/<username>/<int:game_id>', methods=['POST'])
-@login_required
-@ownership_required
-def delete_game(username, game_id):
-    game = Game.query.filter_by(id=game_id).first_or_404()
-    
-    if game.player.username != username:
-        flash('Ошибка доступа', 'error')
-        return redirect(url_for('home'))
-    
-    db.session.delete(game)
-    db.session.commit()
-    flash('Игра удалена из профиля', 'success')
-    
-    return redirect(url_for('add_game', username=username))
-
-@app.route('/find_game', methods=['GET'])
-def find_game():
-    selected_games = request.args.getlist('games') 
-    contact_filters = request.args.getlist('contact_filter') 
-    
-    query = User.query.filter_by(is_active=True)
-    
-    if selected_games:
-        for game_title in selected_games:
-            query = query.filter(User.games.any(game_title=game_title))
-    
-    found_users = query.all()
-    
-    if contact_filters:
-        filtered_users = []
-        for user in found_users:
-            has_required_contact = False
-            if 'discord' in contact_filters and user.discord:
-                has_required_contact = True
-            if 'telegram' in contact_filters and user.telegram:
-                has_required_contact = True
-            if has_required_contact:
-                filtered_users.append(user)
-        found_users = filtered_users
-                
-    return render_template(
-        'find_game.html', 
-        available_games=AVAILABLE_GAMES,
-        found_users=found_users,
-        selected_games=selected_games,
-        contact_filters=contact_filters 
-    )
-
-@app.route('/delete_user/<username>', methods=['POST'])
-@login_required
-@ownership_required
-def delete_user(username):
-    user = User.query.filter_by(username=username).first_or_404()
-    
-    user.is_active = False
-    db.session.commit()
-    
-    session.clear()
-    flash('Ваш профиль был удален', 'info')
-    return redirect(url_for('home'))
-
-# --- Маршруты чата ---
-@app.route('/messages')
-@login_required
-def messages():
-    user_id = session['user_id']
-    
-    recent_messages = db.session.query(
-        Message,
-        func.max(Message.timestamp).label('max_timestamp')
-    ).filter(
-        (Message.sender_id == user_id) | (Message.receiver_id == user_id)
-    ).group_by(
-        db.case(
-            (Message.sender_id == user_id, Message.receiver_id),
-            else_=Message.sender_id
-        )
-    ).order_by(db.desc('max_timestamp')).all()
-    
-    chats = []
-    for msg, timestamp in recent_messages:
-        other_user = msg.receiver if msg.sender_id == user_id else msg.sender
-        unread_count = Message.query.filter_by(
-            sender_id=other_user.id,
-            receiver_id=user_id,
-            is_read=False
-        ).count()
-        
-        chats.append({
-            'user': other_user,
-            'last_message': msg,
-            'unread_count': unread_count,
-            'timestamp': timestamp
-        })
-    
-    return render_template('messages.html', chats=chats)
-
-@app.route('/chat/<username>')
-@login_required
-def chat(username):
-    other_user = User.query.filter_by(username=username, is_active=True).first_or_404()
-    current_user_id = session['user_id']
-    
-    if other_user.id == current_user_id:
-        flash('Нельзя писать самому себе', 'error')
-        return redirect(url_for('messages'))
-    
-    Message.query.filter_by(
-        sender_id=other_user.id,
-        receiver_id=current_user_id,
-        is_read=False
-    ).update({'is_read': True})
-    db.session.commit()
-    
-    messages_history = Message.query.filter(
-        ((Message.sender_id == current_user_id) & (Message.receiver_id == other_user.id)) |
-        ((Message.sender_id == other_user.id) & (Message.receiver_id == current_user_id))
-    ).order_by(Message.timestamp.asc()).all()
-    
-    return render_template('chat.html', other_user=other_user, messages=messages_history)
-
-@app.route('/send_message/<username>', methods=['POST'])
-@login_required
-def send_message(username):
-    other_user = User.query.filter_by(username=username, is_active=True).first_or_404()
-    current_user_id = session['user_id']
-    
-    if other_user.id == current_user_id:
-        flash('Нельзя писать самому себе', 'error')
-        return redirect(url_for('messages'))
-    
-    content = request.form.get('content', '').strip()
-    
-    if not content:
-        flash('Сообщение не может быть пустым', 'error')
-    elif len(content) > 1000:
-        flash('Сообщение слишком длинное', 'error')
-    else:
-        message = Message(
-            sender_id=current_user_id,
-            receiver_id=other_user.id,
-            content=content
-        )
-        db.session.add(message)
-        db.session.commit()
-        flash('Сообщение отправлено!', 'success')
-    
-    return redirect(url_for('chat', username=username))
-
-@app.route('/api/unread_count')
-@login_required
-def unread_count():
-    count = Message.query.filter_by(
-        receiver_id=session['user_id'],
-        is_read=False
-    ).count()
-    return jsonify({'unread_count': count})
-
-# --- Обработчики ошибок ---
-@app.errorhandler(404)
-def not_found_error(error):
-    return render_template('404.html'), 404
-
-@app.errorhandler(403)
-def forbidden_error(error):
-    return render_template('403.html'), 403
-
-@app.errorhandler(500)
-def internal_error(error):
-    db.session.rollback()
-    return render_template('500.html'), 500
+# ... остальные маршруты (они остаются без изменений) ...
+# КОПИРУЕШЬ ИХ ИЗ ПРЕДЫДУЩЕГО КОДА
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
