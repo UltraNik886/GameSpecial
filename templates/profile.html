@@ -3,32 +3,59 @@
 {% block content %}
 <div class="profile-container">
     {% if user %}
-        <h2>👤 Профиль: {{ user.username }}</h2>
-        
-        <div class="profile-info">
-            <p><strong>Описание:</strong> {{ user.description or 'Не указано' }}</p>
-            <p><strong>Контакты:</strong> {{ user.contact or 'Не указано' }}</p>
-            <p><strong>Discord:</strong> {{ user.discord or 'Не указано' }}</p>
-            <p><strong>Telegram:</strong> {{ user.telegram or 'Не указано' }}</p>
-            <p><strong>Предпочитаемая роль:</strong> {{ user.preferred_role or 'Не указано' }}</p>
-            
-            <h3>🎮 Игры:</h3>
-            <ul>
-                {% for game in user.games %}
-                    <li>{{ game.game_title }}</li>
-                {% else %}
-                    <li>Игры не выбраны</li>
-                {% endfor %}
-            </ul>
+        <div class="profile-header">
+            <h2>👤 {{ user.username }}</h2>
+            {% if session.user_id == user.id %}
+                <a href="{{ url_for('edit_profile') }}" class="btn btn-edit">✏️ Редактировать профиль</a>
+            {% endif %}
         </div>
-
-        {% if session.user_id == user.id %}
-            <a href="{{ url_for('edit_profile') }}" class="btn">✏️ Редактировать профиль</a>
-        {% endif %}
+        
+        <div class="profile-grid">
+            <div class="profile-card">
+                <h3>📝 О себе</h3>
+                <p>{{ user.description or 'Пока ничего не рассказал о себе' }}</p>
+            </div>
+            
+            <div class="profile-card">
+                <h3>📞 Контакты</h3>
+                <div class="contact-list">
+                    <div class="contact-item">
+                        <span class="contact-label">Основные:</span>
+                        <span class="contact-value">{{ user.contact or 'Не указано' }}</span>
+                    </div>
+                    <div class="contact-item">
+                        <span class="contact-label">Discord:</span>
+                        <span class="contact-value">{{ user.discord or 'Не указано' }}</span>
+                    </div>
+                    <div class="contact-item">
+                        <span class="contact-label">Telegram:</span>
+                        <span class="contact-value">{{ user.telegram or 'Не указано' }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="profile-card">
+                <h3>🎯 Роль</h3>
+                <p class="role-badge">{{ user.preferred_role or 'Не указана' }}</p>
+            </div>
+            
+            <div class="profile-card games-card">
+                <h3>🎮 Игры</h3>
+                <div class="games-list">
+                    {% for game in user.games %}
+                        <span class="game-tag">{{ game.game_title }}</span>
+                    {% else %}
+                        <p class="no-games">Игры не выбраны</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
     {% else %}
-        <h2>❌ Пользователь не найден</h2>
-        <p>Такого пользователя не существует или он деактивирован.</p>
-        <a href="{{ url_for('home') }}">← На главную</a>
+        <div class="error-message">
+            <h2>❌ Пользователь не найден</h2>
+            <p>Такого пользователя не существует или он деактивирован.</p>
+            <a href="{{ url_for('home') }}" class="btn">← На главную</a>
+        </div>
     {% endif %}
 </div>
 {% endblock %}

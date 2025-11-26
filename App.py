@@ -96,19 +96,16 @@ def is_admin():
 def home():
     try:
         user_count = User.query.filter_by(is_active=True).count()
-        game_count = db.session.query(func.count(distinct(Game.game_title))).scalar()
         users = User.query.filter_by(is_active=True).order_by(User.created_at.desc()).limit(20).all()
         
         return render_template('home.html', 
                              users=users, 
-                             user_count=user_count, 
-                             games_in_db=game_count,
+                             user_count=user_count,
                              available_games=AVAILABLE_GAMES)
     except Exception as e:
         return render_template('home.html', 
                              users=[], 
-                             user_count=0, 
-                             games_in_db=0,
+                             user_count=0,
                              available_games=AVAILABLE_GAMES)
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -202,11 +199,7 @@ def my_profile():
     """Профиль текущего пользователя"""
     try:
         user = User.query.get(session['user_id'])
-        user_games = [game.game_title for game in user.games]
-        return render_template('profile.html', 
-                             user=user, 
-                             available_games=AVAILABLE_GAMES,
-                             user_games=user_games)
+        return render_template('profile.html', user=user)
     except Exception as e:
         flash('Ошибка при загрузке профиля', 'error')
         return redirect(url_for('home'))
@@ -296,29 +289,19 @@ def admin_panel():
         flash(f'Ошибка админки: {str(e)}', 'error')
         return redirect(url_for('home'))
 
-# --- ДОПОЛНИТЕЛЬНЫЕ МАРШРУТЫ ДЛЯ СУЩЕСТВУЮЩИХ ШАБЛОНОВ ---
+# --- СООБЩЕНИЯ ---
 @app.route('/messages')
 @login_required
 def messages():
     """Страница сообщений"""
     return render_template('messages.html')
 
-@app.route('/chat')
+@app.route('/send_message', methods=['POST'])
 @login_required
-def chat():
-    """Чат"""
-    return render_template('chat.html')
-
-@app.route('/about')
-def about():
-    """О сайте"""
-    return render_template('about.html')
-
-@app.route('/add_game')
-@login_required
-def add_game():
-    """Добавление игры"""
-    return render_template('add_game.html', available_games=AVAILABLE_GAMES)
+def send_message():
+    """Отправка сообщения"""
+    flash('Функция сообщений скоро будет доступна!', 'info')
+    return redirect(url_for('home'))
 
 # --- ДИАГНОСТИКА ---
 @app.route('/debug')

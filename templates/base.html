@@ -23,7 +23,9 @@
         <div class="nav-links">
             <a href="{{ url_for('home') }}">🏠 Главная</a>
             {% if session.user_id %}
-                <a href="{{ url_for('my_profile') }}">👤 Мой профиль</a>
+                {% if request.endpoint != 'my_profile' and request.endpoint != 'view_profile' %}
+                    <a href="{{ url_for('my_profile') }}">👤 Мой профиль</a>
+                {% endif %}
                 <a href="{{ url_for('find_game') }}">🔎 Найти союзников</a>
                 {% if session.username == 'MollNik' %}
                     <a href="{{ url_for('admin_panel') }}">👑 Админка</a>
